@@ -128,12 +128,24 @@ class VMSApp {
     }
   }
 
+  showAppLayout() {
+    const layout = document.getElementById('appLayout');
+    if (layout) layout.style.display = '';
+  }
+
+  hideAppLayout() {
+    const layout = document.getElementById('appLayout');
+    if (layout) layout.style.display = 'none';
+  }
+
   async checkSession() {
     try {
       const data = await this.safeFetchJson('/api/auth/me');
       if (data && data.user) {
         this.currentUser = data.user;
         this.currentVendor = data.vendor;
+        this.closeAuthModal();
+        this.showAppLayout();
         this.updateUserUI();
         await this.loadPrequal();
         await this.loadEmployees();
@@ -144,11 +156,13 @@ class VMSApp {
           await this.loadAdminOverview();
         }
       } else {
+        this.hideAppLayout();
         this.updateUserUI();
         this.openAuthModal('login');
       }
     } catch (e) {
       console.error('Session check failed', e);
+      this.hideAppLayout();
       this.updateUserUI();
     }
   }
@@ -771,6 +785,7 @@ class VMSApp {
       this.currentUser = data.user;
       this.currentVendor = data.vendor;
       this.closeAuthModal();
+      this.showAppLayout();
       this.updateUserUI();
       await this.loadPrequal();
       await this.loadEmployees();
@@ -787,6 +802,7 @@ class VMSApp {
     this.currentUser = null;
     this.currentVendor = null;
     this.currentPrequal = null;
+    this.hideAppLayout();
     this.updateUserUI();
     this.openAuthModal('login');
   }

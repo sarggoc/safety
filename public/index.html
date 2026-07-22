@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <div class="app-layout">
+  <div class="app-layout" id="appLayout" style="display:none;">
 
     <!-- LEFT SIDEBAR NAVIGATION -->
     <aside class="app-sidebar">
@@ -1291,12 +1291,12 @@
     </main>
   </div>
 
-  <!-- AUTH MODAL (LOGIN / REGISTER) -->
+  <!-- AUTH MODAL (LOGIN / REGISTER) - NO CLOSE BUTTON: must log in -->
   <div class="modal-overlay" id="authModal">
     <div class="modal-box">
       <div class="flex-between mb-3">
         <h2 style="font-size: 1.25rem;" id="authModalTitle">Sign In to MAXX VMS</h2>
-        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+        <!-- X button intentionally removed: login is required to access the system -->
       </div>
 
       <!-- Login Form -->
