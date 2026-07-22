@@ -153,6 +153,7 @@ class VMSApp {
         await this.loadCourses();
         await this.loadAssignedTasks();
         if (this.currentUser.role === 'admin') {
+          await this.loadAllVendors();
           await this.loadAdminOverview();
         }
       } else {
@@ -356,7 +357,16 @@ class VMSApp {
     await this.loadCertificates();
     await this.loadAssignedTasks();
 
-    // Reload active tab
+    // Navigate to the selected company's info
+    if (vendorId !== 'all') {
+      // Go to pre-qualification tab to show company info
+      this.showTab('prequal');
+    } else {
+      // Back to global dashboard view
+      this.showTab('dashboard');
+    }
+
+    // Reload active tab if audit
     const activeTab = document.querySelector('.tab-content:not(.hidden)');
     if (activeTab && activeTab.id === 'tab-audit') {
       this.loadAuditReport();
@@ -754,6 +764,7 @@ class VMSApp {
       await this.loadCertificates();
       await this.loadCourses();
       if (this.currentUser.role === 'admin') {
+        await this.loadAllVendors();
         await this.loadAdminOverview();
       }
       this.showTab('dashboard');
