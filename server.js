@@ -74,7 +74,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(` MAXX Industries VMS Server is running!`);
   console.log(` Access URL: http://localhost:${PORT}`);
