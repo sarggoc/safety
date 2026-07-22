@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAXX Worker Safety Passport - Live Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .ticket-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    .ticket-img {
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin-top: 0.75rem;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .ticket-img:hover {
+      transform: scale(1.02);
+    }
+    .lightbox-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,0.85);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .lightbox-overlay.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body style="background: #f8fafc; padding: 1.5rem 1rem;">
+  <div style="max-width: 620px; margin: 0 auto;">
+    
+    <!-- Top Brand Header -->
+    <div style="text-align: center; margin-bottom: 1.25rem;">
+      <div style="font-size: 1.4rem; font-weight: 900; color: #1e3a8a; letter-spacing: -0.5px;">
+        <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i> MAXX INDUSTRIES LTD
+      </div>
+      <div style="font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
+        Verified Worker Safety Passport & Credentials
+      </div>
+    </div>
+
+    <!-- Main Card Container -->
+    <div id="passportCard" class="card" style="padding: 1.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08);">
+      <div style="text-align: center; padding: 2rem 0;">
+        <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: #3b82f6;"></i>
+        <p style="margin-top: 0.75rem; color: #64748b; font-weight: 600;">Loading safety tickets & verified documents...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox-overlay" onclick="closeLightbox()">
+    <div style="max-width:90vw; max-height:90vh; text-align:center; position:relative;" onclick="event.stopPropagation()">
+      <button style="position:absolute; top:-40px; right:0; background:none; border:none; color:white; font-size:1.6rem; cursor:pointer;" onclick="closeLightbox()"><i class="fa-solid fa-xmark"></i></button>
+      <img id="lightboxImg" src="" alt="Safety Ticket Document" style="max-width:100%; max-height:80vh; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+      <div id="lightboxTitle" style="color:white; font-weight:700; font-size:1rem; margin-top:0.75rem;"></div>
+    </div>
+  </div>
+
+  <script>
+    function openLightbox(url, title) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightboxTitle').innerText = title;
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+    }
+
+    async function loadPassport() {
+      const params = new URLSearchParams(window.location.search);
+      const empId = params.get('id');
+      const container = document.getElementById('passportCard');
+
+      if (!empId) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:1.5rem; color:#ef4444;">
+            <i class="fa-solid fa-triangle-exclamation fa-2x"></i>
+            <h3 style="margin-top:0.5rem; font-weight:700;">No Worker ID Specified</h3>
+            <p style="font-size:0.85rem; color:#64748b;">Please scan a valid worker QR code badge.</p>
+          </div>
+        `;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/employees/${empId}/public-passport`);
+        if (!res.ok) throw new Error('Worker record not found');
+        const data = await res.json();
+
+        const emp = data.employee;
+        const vendor = data.vendor;
+        const certs = data.certificates || [];
+
+        const avatarHtml = emp.profilePictureUrl
+          ? `<img src="${emp.profilePictureUrl}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid #3b82f6; margin:0 auto;">`
+          : `<div style="width:80px; height:80px; border-radius:50%; background:#3b82f6; color:white; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; margin:0 auto;">${emp.employeeName.charAt(0).toUpperCase()}</div>`;
+
+        const ticketCardsHtml = certs.map(c => {
+          const docUrl = c.documentUrl || '';
+          const hasImage = docUrl && (docUrl.startsWith('data:image') || docUrl.endsWith('.png') || docUrl.endsWith('.jpg') || docUrl.endsWith('.jpeg') || docUrl.endsWith('.webp') || docUrl.includes('/media_') || docUrl.startsWith('http'));
+
+          return `
+            <div class="ticket-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <h4 style="font-size:1.05rem; font-weight:800; color:#0f172a; margin:0;">${c.title}</h4>
+                  <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">
+                    <i class="fa-solid fa-calendar-check" style="color:#3b82f6;"></i> Expiry Date: <strong style="color:#1e293b;">${c.expiryDate || 'Non-expiring'}</strong>
+                  </div>
+                </div>
+                <div>
+                  <span style="background:#dcfce7; color:#166534; padding:4px 10px; border-radius:12px; font-weight:800; font-size:0.75rem; border:1px solid #86efac; display:inline-flex; align-items:center; gap:4px;">
+                    <i class="fa-solid fa-circle-check"></i> Verified
+                  </span>
+                </div>
+              </div>
+
+              ${docUrl ? `
+                <div style="margin-top:0.75rem;">
+                  <div style="font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:0.25rem;">
+                    <i class="fa-solid fa-image"></i> Ticket Document Preview:
+                  </div>
+                  ${hasImage ? `
+                    <img src="${docUrl}" class="ticket-img" alt="${c.title}" title="Click to expand full image" onclick="openLightbox('${docUrl}', '${c.title}')">
+                  ` : `
+                    <a href="${docUrl}" target="_blank" class="btn btn-secondary btn-sm" style="margin-top:0.4rem; width:100%; text-align:center;">
+                      <i class="fa-solid fa-file-pdf"></i> Open Ticket File / PDF Document
+                    </a>
+                  `}
+                </div>
+              ` : `
+                <div style="margin-top:0.5rem; font-size:0.78rem; color:#94a3b8; font-style:italic;">
+                  <i class="fa-solid fa-info-circle"></i> Verification record confirmed on file
+                </div>
+              `}
+            </div>
+          `;
+        }).join('');
+
+        container.innerHTML = `
+          <!-- Header Banner -->
+          <div style="background:#eff6ff; border:1.5px solid #bfdbfe; color:#1e40af; padding:0.85rem; border-radius:8px; text-align:center; font-weight:800; font-size:1rem; margin-bottom:1.25rem; display:flex; align-items:center; justify-content:center; gap:0.6rem;">
+            <i class="fa-solid fa-id-card fa-lg"></i>
+            <span>DIGITAL SAFETY PASSPORT & TICKETS</span>
+          </div>
+
+          <!-- Worker Profile Summary Card -->
+          <div style="text-align:center; margin-bottom:1.5rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1.25rem;">
+            ${avatarHtml}
+            <h2 style="font-size:1.3rem; font-weight:900; color:#0f172a; margin-top:0.6rem; margin-bottom:0.2rem;">${emp.employeeName}</h2>
+            <div style="font-size:0.9rem; font-weight:700; color:#3b82f6;">${emp.jobTitle || 'Field Technician'}</div>
+            <div style="font-size:0.82rem; color:#64748b; margin-top:0.2rem;">${vendor.companyName}</div>
+          </div>
+
+          <!-- Safety Qualification Tickets -->
+          <div>
+            <h3 style="font-size:1rem; font-weight:800; color:#0f172a; border-bottom:2px solid #e2e8f0; padding-bottom:0.4rem; margin-bottom:1rem; display:flex; align-items:center; justify-content:space-between;">
+              <span><i class="fa-solid fa-certificate" style="color:#3b82f6;"></i> Verified Safety Tickets</span>
+              <span style="font-size:0.8rem; background:#e2e8f0; color:#475569; padding:2px 8px; border-radius:12px;">${certs.length} Active</span>
+            </h3>
+            
+            ${certs.length > 0 ? ticketCardsHtml : `
+              <div style="text-align:center; padding:2rem; background:#ffffff; border:1px dashed #cbd5e1; border-radius:10px; color:#64748b;">
+                <i class="fa-solid fa-folder-open fa-2x" style="color:#cbd5e1; margin-bottom:0.5rem;"></i>
+                <p style="margin:0; font-weight:600;">No safety tickets submitted for this worker profile yet.</p>
+              </div>
+            `}
+          </div>
+
+          <div style="text-align:center; margin-top:1.5rem; font-size:0.75rem; color:#94a3b8;">
+            <i class="fa-solid fa-lock"></i> Verified Live by MAXX VMS Platform • Timestamp: ${new Date().toLocaleTimeString()}
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:1.5rem; color:#ef4444;">
+            <i class="fa-solid fa-circle-exclamation fa-2x"></i>
+            <h3 style="margin-top:0.5rem; font-weight:700;">Worker Profile Not Found</h3>
+            <p style="font-size:0.85rem; color:#64748b;">${err.message}</p>
+          </div>
+        `;
+      }
+    }
+    window.onload = loadPassport;
+  </script>
+</body>
+</html>

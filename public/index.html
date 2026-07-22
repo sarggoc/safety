@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAXX Industries Ltd - Vendor Management System</title>
+  <meta name="description" content="Vendor Management & Contractor Pre-Qualification System for MAXX Industries Ltd">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-layout">
+
+    <!-- LEFT SIDEBAR NAVIGATION -->
+    <aside class="app-sidebar">
+      <a href="#" class="sidebar-brand" onclick="app.showTab('dashboard')">
+        <i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i>
+        <span>MAXX VMS</span>
+        <span class="badge-maxx">Prequal</span>
+      </a>
+
+      <!-- SIDEBAR COMPANY SELECTOR DROPDOWN -->
+      <div id="sidebarCompanyContextBox" style="padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;">
+        <label style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.25rem;">Active Company Context</label>
+        <select id="sidebarCompanySelect" onchange="app.handleGlobalCompanyChange(this.value)" style="width: 100%; font-size: 0.8rem; font-weight: 600; padding: 0.4rem; border-color: var(--primary);">
+          <option value="all">Global Multi-Company View</option>
+        </select>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item-title">Navigation</div>
+        <a class="nav-link active" id="sideNavDashboard" onclick="app.showTab('dashboard')">
+          <i class="fa-solid fa-gauge"></i> <span>Dashboard</span>
+        </a>
+        <a class="nav-link" id="sideNavPrequal" onclick="app.showTab('prequal')">
+          <i class="fa-solid fa-file-contract"></i> <span>Pre-Qualification</span>
+        </a>
+        <a class="nav-link" id="sideNavCerts" onclick="app.showTab('certificates')">
+          <i class="fa-solid fa-certificate"></i> <span>Certificates & Expiry</span>
+        </a>
+        <a class="nav-link" id="sideNavPersonnel" onclick="app.showTab('personnel')">
+          <i class="fa-solid fa-users"></i> <span>Company Personnel</span>
+        </a>
+        <a class="nav-link" id="sideNavCourses" onclick="app.showTab('courses')">
+          <i class="fa-solid fa-graduation-cap"></i> <span>Safety Courses</span>
+        </a>
+        <a class="nav-link" id="sideNavAudit" onclick="app.showTab('audit')">
+          <i class="fa-solid fa-file-shield"></i> <span>Safety Audit Report</span>
+        </a>
+        
+        <div class="nav-item-title hidden" id="sideAdminHeader">Administration</div>
+        <a class="nav-link hidden" id="sideNavAdmin" onclick="app.showTab('admin')">
+          <i class="fa-solid fa-user-shield"></i> <span>Admin Console</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar User Profile Footer -->
+      <div class="sidebar-footer" id="userArea">
+        <button class="btn btn-primary btn-sm" style="width:100%;" onclick="app.openAuthModal('login')">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In / Register
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-wrapper">
+
+      <!-- GLOBAL MULTI-COMPANY SELECTOR BAR (Visible Top Bar) -->
+      <div id="globalCompanySelectorBar" style="background: var(--bg-card); border: 1px solid var(--primary); border-radius: var(--radius-md); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; box-shadow: var(--shadow-sm);">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <i class="fa-solid fa-building-user fa-xl" style="color:var(--primary);"></i>
+          <div>
+            <strong style="font-size:0.95rem;">Active Contractor Company Context:</strong>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Switch between contractor companies to view pre-qualifications, personnel, and compliance reports</div>
+          </div>
+        </div>
+        <div style="min-width: 280px;">
+          <select id="globalCompanySelect" onchange="app.handleGlobalCompanyChange(this.value)" style="font-weight:700; border-color:var(--primary); background:var(--primary-light); color:var(--primary);">
+            <option value="all">Global Multi-Company View</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Global Expiration Alert Banner -->
+      <div id="expirationWarningBanner" class="alert-banner alert-warning hidden">
+        <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
+        <div id="warningBannerText">You have certificates expiring within 30 days. Please upload renewed documentation.</div>
+      </div>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h1 class="card-title"><i class="fa-solid fa-city" style="color: var(--primary);"></i> Contractor Compliance Dashboard</h1>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;" id="dashSubtitle">Welcome to MAXX Industries Ltd Contractor Portal</p>
+            </div>
+            <div id="prequalStatusPill">
+              <span class="badge badge-draft">Draft</span>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon blue"><i class="fa-solid fa-file-signature"></i></div>
+              <div>
+                <div class="stat-val" id="dashPrequalStatus">Not Started</div>
+                <div class="stat-lbl">Pre-Qualification Status</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green"><i class="fa-solid fa-award"></i></div>
+              <div>
+                <div class="stat-val" id="dashActiveCerts">0</div>
+                <div class="stat-lbl">Active Certificates</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon amber"><i class="fa-solid fa-clock-rotate-left"></i></div>
+              <div>
+                <div class="stat-val" id="dashExpiringCerts">0</div>
+                <div class="stat-lbl">Expiring Soon (&le; 30 Days)</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon red"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div>
+                <div class="stat-val" id="dashExpiredCerts">0</div>
+                <div class="stat-lbl">Expired Certificates</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Banner -->
+          <div id="dashActionBanner" style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div>
+              <h3 style="font-size: 1.05rem; margin-bottom: 0.2rem;">Pre-Qualification Questionnaire & Document Submittal</h3>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Complete Parts A through E to submit your company profile for MAXX Industries sign-off.</p>
+            </div>
+            <button class="btn btn-primary" onclick="app.showTab('prequal')"><i class="fa-solid fa-pen-to-square"></i> Open Pre-Qualification Form</button>
+          </div>
+        </div>
+
+        <!-- ADMIN ONLY: PENDING COMPLIANCE DOCUMENTS & TICKETS REVIEW QUEUE BANNER -->
+        <div class="card hidden mb-4" id="dashPendingWorkerTicketsCard" style="background:#fffbeb; border:2px solid #fde68a;">
+          <div class="card-header flex-between" style="border-bottom:1px solid #fef3c7; padding-bottom:0.75rem; margin-bottom:0.75rem;">
+            <div>
+              <h2 class="card-title" style="color:#92400e; font-size:1.1rem;"><i class="fa-solid fa-clock-rotate-left" style="color:#d97706;"></i> Pending Compliance Documents & Safety Tickets (Awaiting Admin Approval)</h2>
+              <p style="color:#b45309; font-size:0.82rem; margin-top:0.15rem;">The following contractor company policy documents and worker safety tickets require MAXX HSE sign-off before site clearance is granted.</p>
+            </div>
+            <button class="btn btn-warning btn-sm" onclick="app.showTab('admin'); app.setAdminSubTab('employeeCertReq');"><i class="fa-solid fa-layer-group"></i> Manage All Tickets</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Target / Owner</th>
+                  <th>Type</th>
+                  <th>Document Title</th>
+                  <th>Expiry Date</th>
+                  <th>Document Preview</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="dashPendingWorkerTicketsBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- GLOBAL CONTRACTOR COMPANIES COMPLIANCE ROSTER -->
+        <div class="card" id="dashGlobalCompaniesCard">
+          <div class="card-header flex-between">
+            <div>
+              <h2 class="card-title"><i class="fa-solid fa-building-circle-check" style="color: var(--primary);"></i> Registered Contractor Companies Compliance Overview</h2>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">Live compliance monitoring, safety pre-qualifications, and clearance statuses across all contractor organizations.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="app.showTab('admin')"><i class="fa-solid fa-user-shield"></i> Open Admin Review Console</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Contractor Organization</th>
+                  <th>Jurisdiction</th>
+                  <th>ISNetworld ID#</th>
+                  <th>Pre-Qual Review Status</th>
+                  <th>Company Insurance</th>
+                  <th>Workers Roster</th>
+                  <th>Audit Clearance Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="dashCompaniesTableBody">
+                <tr><td colspan="8" class="text-center" style="color: var(--text-muted);">Loading contractor companies compliance overview...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pending MAXX Requests & Assigned Trainings Card -->
+        <div class="card" id="assignedTasksDashboardCard">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-tasks" style="color: var(--warning);"></i> Pending MAXX Requests & Assigned Safety Trainings</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Task / Request Title</th>
+                  <th>Target Worker / Scope</th>
+                  <th>Due Date</th>
+                  <th>Instructions / Notes</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="assignedTasksTableBody">
+                <tr><td colspan="5" class="text-center" style="color: var(--text-muted);">No pending assigned tasks or certificate requests.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Compliance Summary Card -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fa-solid fa-list-check" style="color: var(--accent-teal);"></i> Compliance Document Checklist</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Requirement Description</th>
+                  <th>Required Limit / Policy</th>
+                  <th>Document Status</th>
+                  <th>Expiration Date</th>
+                </tr>
+              </thead>
+              <tbody id="dashChecklistBody">
+                <tr><td colspan="4" class="text-center" style="color: var(--text-muted);">Please log in or start pre-qualification to view checklist.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: PRE-QUALIFICATION FORM (PARTS A - F) -->
+      <section id="tab-prequal" class="tab-content hidden">
+        
+        <!-- Stepper Navigation -->
+        <div class="prequal-stepper">
+          <button class="step-tab active" onclick="app.setStep('partA')"><span class="step-num">A</span> Part A: General Info</button>
+          <button class="step-tab" onclick="app.setStep('partB')"><span class="step-num">B</span> Part B: Documents</button>
+          <button class="step-tab" onclick="app.setStep('partC')"><span class="step-num">C</span> Part C: Incident Data</button>
+          <button class="step-tab" onclick="app.setStep('partD')"><span class="step-num">D</span> Part D: Questionnaire</button>
+          <button class="step-tab" onclick="app.setStep('partE')"><span class="step-num">E</span> Part E: Acknowledgement</button>
+          <button class="step-tab" id="stepTabF" onclick="app.setStep('partF')"><span class="step-num">F</span> Part F: MAXX Review</button>
+        </div>
+
+        <form id="prequalForm" onsubmit="event.preventDefault();">
+          
+          <!-- STEP A: GENERAL CONTRACTOR INFORMATION -->
+          <div id="step-partA" class="step-content">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-building" style="color: var(--primary);"></i> PART A - GENERAL CONTRACTOR INFORMATION</h2>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Primary Operating Jurisdiction / Country *</label>
+                  <select id="partA_country" onchange="app.handleCountryChange(this.value)">
+                    <option value="Canada" selected>🇨🇦 Canada (WCB / OH&S / COR)</option>
+                    <option value="USA">🇺🇸 United States (OSHA / DOT / FEIN)</option>
+                    <option value="Both">🇨🇦🇺🇸 Both Canada & USA</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Contractor (Company Name) *</label>
+                  <input type="text" id="partA_contractorName" required placeholder="e.g. Acme Industrial Services Ltd.">
+                </div>
+                <div class="form-group">
+                  <label>Primary Point of Contact *</label>
+                  <input type="text" id="partA_primaryContact" required placeholder="Full Name & Title">
+                </div>
+                <div class="form-group">
+                  <label>ISNetworld Company ID#</label>
+                  <input type="text" id="partA_isnetworldId" placeholder="e.g. 400-123456">
+                </div>
+                <div class="form-group">
+                  <label id="lblGstNumber">GST / HST Business Number (Canada)</label>
+                  <input type="text" id="partA_gstNumber" placeholder="e.g. 123456789 RT 0001">
+                </div>
+                <div class="form-group">
+                  <label id="lblTaxWcbNumber">WCB / WSIB Account Number (Canada)</label>
+                  <input type="text" id="partA_taxWcbNumber" placeholder="e.g. WCB-9876543">
+                </div>
+                <div class="form-group">
+                  <label id="lblCorNumber">COR / SECOR Certificate Number (Safety Canada)</label>
+                  <input type="text" id="partA_corNumber" placeholder="e.g. COR-2026-10492">
+                </div>
+                <div class="form-group full-width">
+                  <label>Address *</label>
+                  <input type="text" id="partA_address" placeholder="Street Address, Suite / Unit">
+                </div>
+                <div class="form-group">
+                  <label>City *</label>
+                  <input type="text" id="partA_city" placeholder="City">
+                </div>
+                <div class="form-group">
+                  <label id="lblStateProvince">Province / State *</label>
+                  <input type="text" id="partA_state" placeholder="Province or State (e.g. AB, BC, ON, TX)">
+                </div>
+                <div class="form-group">
+                  <label>Postal / Zip Code *</label>
+                  <input type="text" id="partA_zip" placeholder="Postal or Zip Code">
+                </div>
+                <div class="form-group">
+                  <label>Phone # *</label>
+                  <input type="text" id="partA_phone" required placeholder="(555) 000-0000">
+                </div>
+                <div class="form-group">
+                  <label>Fax #</label>
+                  <input type="text" id="partA_fax" placeholder="(555) 000-0001">
+                </div>
+                <div class="form-group">
+                  <label>Email *</label>
+                  <input type="email" id="partA_email" required placeholder="contact@company.com">
+                </div>
+              </div>
+              <div class="mt-3 flex-between">
+                <div></div>
+                <button class="btn btn-primary" onclick="app.setStep('partB')">Next: Part B (Documents) <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP B: DOCUMENT SUBMITTAL REQUEST -->
+          <div id="step-partB" class="step-content hidden">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-file-arrow-up" style="color: var(--accent-teal);"></i> PART B - DOCUMENT SUBMITTAL REQUEST</h2>
+              </div>
+              
+              <!-- B.1 Health & Safety Manual -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.5rem;">B.1 Company Health & Safety Program Manual</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">A copy of your Company's Health & Safety Program Manual.</p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Document Upload (Drag & Drop or Click)</label>
+                    <div class="drop-zone" onclick="document.getElementById('file_b1').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'b1')">
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      <p>Drag & drop manual file here or click to browse</p>
+                      <span>Supports PDF, Images (PNG, JPG)</span>
+                      <input type="file" id="file_b1" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'b1')">
+                    </div>
+                    <input type="hidden" id="url_b1">
+                    <div id="preview_b1" class="file-preview hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Manual Revision / Expiry Date</label>
+                    <input type="date" id="expiry_b1">
+                  </div>
+                </div>
+              </div>
+
+              <!-- B.2 Anti-Drug & Alcohol Plan -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.5rem;">B.2 Anti-Drug & Alcohol Plan (49 CFR Part 199 / Part 40)</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">Compliance with PHMSA and DOT drug and alcohol testing regulations.</p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Document Upload (Drag & Drop or Click)</label>
+                    <div class="drop-zone" onclick="document.getElementById('file_b2').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'b2')">
+                      <i class="fa-solid fa-cloud-arrow-up"></i>
+                      <p>Drag & drop plan file here or click to browse</p>
+                      <span>Supports PDF, Images (PNG, JPG)</span>
+                      <input type="file" id="file_b2" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'b2')">
+                    </div>
+                    <input type="hidden" id="url_b2">
+                    <div id="preview_b2" class="file-preview hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Plan Expiry Date</label>
+                    <input type="date" id="expiry_b2">
+                  </div>
+                </div>
+              </div>
+
+              <!-- B.3 Certificate of Liability Insurance -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.5rem;">B.3 Certification of Liability Insurance (MAXX Industries Ltd Named)</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">Must reflect no less than <strong>$5,000,000</strong> Commercial General Liability and <strong>$2,000,000</strong> Automobile Liability. MAXX Industries Ltd must be named as an additional insured.</p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Certificate Upload (Drag & Drop or Click)</label>
+                    <div class="drop-zone" onclick="document.getElementById('file_b3').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'b3')">
+                      <i class="fa-solid fa-file-image"></i>
+                      <p>Drag & drop certificate image or PDF here</p>
+                      <span>PNG, JPG, WEBP, PDF</span>
+                      <input type="file" id="file_b3" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'b3')">
+                    </div>
+                    <input type="hidden" id="url_b3">
+                    <div id="preview_b3" class="file-preview hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Policy Expiration Date *</label>
+                    <input type="date" id="expiry_b3" required>
+                  </div>
+                </div>
+
+                <!-- Note 1 Cargo -->
+                <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-color);">
+                  <label style="font-weight: 700; color: var(--accent-orange);">Are Cargo Transport Services provided?</label>
+                  <select id="partB_cargoTransport" onchange="app.toggleCargoSection()" style="max-width: 240px; margin-top: 0.25rem;">
+                    <option value="No">No</option>
+                    <option value="Yes">Yes ($1,000,000 Cargo Limit Required)</option>
+                  </select>
+                  <div id="cargoUploadBlock" class="form-grid hidden" style="margin-top: 0.75rem;">
+                    <div class="form-group">
+                      <label>Cargo Insurance Certificate Upload</label>
+                      <div class="drop-zone" onclick="document.getElementById('file_cargo').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'cargo')">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                        <p>Drag & drop cargo cert file</p>
+                        <input type="file" id="file_cargo" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'cargo')">
+                      </div>
+                      <input type="hidden" id="url_cargo">
+                      <div id="preview_cargo" class="file-preview hidden"></div>
+                    </div>
+                    <div class="form-group">
+                      <label>Cargo Expiration Date</label>
+                      <input type="date" id="expiry_cargo">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- B.4 Workers Compensation Insurance -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.5rem;">B.4 Workers' Compensation Insurance Certificate</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">Note: Waiver of Subrogation must be listed in favor of MAXX Industries Ltd and its subsidiaries.</p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Workers' Comp Certificate (Drag & Drop or Click)</label>
+                    <div class="drop-zone" onclick="document.getElementById('file_b4').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'b4')">
+                      <i class="fa-solid fa-user-shield"></i>
+                      <p>Drag & drop Workers' Comp cert file</p>
+                      <input type="file" id="file_b4" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'b4')">
+                    </div>
+                    <input type="hidden" id="url_b4">
+                    <div id="preview_b4" class="file-preview hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Expiration Date *</label>
+                    <input type="date" id="expiry_b4" required>
+                  </div>
+                  <div class="form-group full-width">
+                    <label>If unable to provide certificate, provide Letter of Explanation (Signed by Provider):</label>
+                    <textarea id="partB_wcExplanation" placeholder="Letter of explanation details if applicable..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- B.5 EMR Statement -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 0.5rem;">B.5 Insurance Provider Statement of EMR (Past 3 Years)</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.5rem;">Statement regarding your Company's Experience Modification Rate for past 3 years.</p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>EMR Statement Upload (Drag & Drop or Click)</label>
+                    <div class="drop-zone" onclick="document.getElementById('file_b5').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'b5')">
+                      <i class="fa-solid fa-chart-line"></i>
+                      <p>Drag & drop EMR statement file</p>
+                      <input type="file" id="file_b5" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'b5')">
+                    </div>
+                    <input type="hidden" id="url_b5">
+                    <div id="preview_b5" class="file-preview hidden"></div>
+                  </div>
+                  <div class="form-group">
+                    <label>Issue / Statement Date</label>
+                    <input type="date" id="expiry_b5">
+                  </div>
+                  <div class="form-group full-width">
+                    <label>If EMR statement cannot be provided, provide Letter of Explanation:</label>
+                    <textarea id="partB_emrExplanation" placeholder="Provider explanation details..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex-between">
+                <button class="btn btn-secondary" onclick="app.setStep('partA')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary" onclick="app.setStep('partC')">Next: Part C (Incident Stats) <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP C: INCIDENT & ACCIDENT STATISTICAL INFORMATION -->
+          <div id="step-partC" class="step-content hidden">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-calculator" style="color: var(--warning);"></i> PART C - INCIDENT & ACCIDENT (STATISTICAL) INFORMATION</h2>
+              </div>
+              
+              <div style="background: var(--primary-light); border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #1e40af;">
+                <strong>TRIR, LTI & DART Calculation Formulas (Auto-Calculated below):</strong><br>
+                &bull; <strong>TRIR</strong> = (Total Recordable Injury Cases [LT + RW + MA] &times; 200,000) / Total Hours Worked<br>
+                &bull; <strong>LTIR</strong> = (Total Lost Time Injuries &times; 200,000) / Total Hours Worked<br>
+                &bull; <strong>DART</strong> = (Days Away | Restricted Work | Job Transfer Injuries &times; 200,000) / Total Hours Worked
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="tablePartC">
+                  <thead>
+                    <tr>
+                      <th>Statistical Metric</th>
+                      <th>2024</th>
+                      <th>2023</th>
+                      <th>2022</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>1. Total Work Force Hours Accumulated *</strong></td>
+                      <td><input type="number" id="c_hours_2024" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_hours_2023" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_hours_2022" oninput="app.recalculatePartC()" placeholder="0"></td>
+                    </tr>
+                    <tr>
+                      <td><strong>2. Total Lost Time & Restricted Work Cases</strong></td>
+                      <td><input type="number" id="c_ltCases_2024" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_ltCases_2023" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_ltCases_2022" oninput="app.recalculatePartC()" placeholder="0"></td>
+                    </tr>
+                    <tr>
+                      <td><strong>3. Total Recordable Injury Cases (* LT, RW, MA)</strong></td>
+                      <td><input type="number" id="c_trCases_2024" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_trCases_2023" oninput="app.recalculatePartC()" placeholder="0"></td>
+                      <td><input type="number" id="c_trCases_2022" oninput="app.recalculatePartC()" placeholder="0"></td>
+                    </tr>
+                    <tr style="background: var(--primary-light);">
+                      <td><strong>4. Total Recordable Injury Rate (TRIR)</strong></td>
+                      <td><span id="c_trir_2024" style="font-weight:700; color:var(--primary);">0.00</span></td>
+                      <td><span id="c_trir_2023" style="font-weight:700; color:var(--primary);">0.00</span></td>
+                      <td><span id="c_trir_2022" style="font-weight:700; color:var(--primary);">0.00</span></td>
+                    </tr>
+                    <tr style="background: var(--primary-light);">
+                      <td><strong>5. Lost Time Injury Rate (LTIR)</strong></td>
+                      <td><span id="c_ltir_2024" style="font-weight:700; color:var(--accent-teal);">0.00</span></td>
+                      <td><span id="c_ltir_2023" style="font-weight:700; color:var(--accent-teal);">0.00</span></td>
+                      <td><span id="c_ltir_2022" style="font-weight:700; color:var(--accent-teal);">0.00</span></td>
+                    </tr>
+                    <tr style="background: var(--primary-light);">
+                      <td><strong>6. Days Away / Restricted Rate (DART)</strong></td>
+                      <td><span id="c_dart_2024" style="font-weight:700; color:var(--warning);">0.00</span></td>
+                      <td><span id="c_dart_2023" style="font-weight:700; color:var(--warning);">0.00</span></td>
+                      <td><span id="c_dart_2022" style="font-weight:700; color:var(--warning);">0.00</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>7. Experience Modification Rate (EMR)</strong></td>
+                      <td><input type="number" step="0.01" id="c_emr_2024" placeholder="1.00"></td>
+                      <td><input type="number" step="0.01" id="c_emr_2023" placeholder="1.00"></td>
+                      <td><input type="number" step="0.01" id="c_emr_2022" placeholder="1.00"></td>
+                    </tr>
+                    <tr>
+                      <td><strong>8. Total Number of Workplace Fatalities</strong></td>
+                      <td><input type="number" id="c_fatalities_2024" placeholder="0"></td>
+                      <td><input type="number" id="c_fatalities_2023" placeholder="0"></td>
+                      <td><input type="number" id="c_fatalities_2022" placeholder="0"></td>
+                    </tr>
+                    <tr>
+                      <td><strong>9. Number of OSHA / PHMSA Citations Received</strong></td>
+                      <td><input type="number" id="c_citations_2024" placeholder="0"></td>
+                      <td><input type="number" id="c_citations_2023" placeholder="0"></td>
+                      <td><input type="number" id="c_citations_2022" placeholder="0"></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="form-group full-width mt-3">
+                <label>10. If Citation(s) were received, provide summary explanation:</label>
+                <textarea id="partC_citationSummary" placeholder="Provide details of any citations received in past 3 years..."></textarea>
+              </div>
+
+              <div class="form-group full-width mt-3">
+                <label>Attach Legible Copies of OSHA 300A Logs (Past 3 Years)</label>
+                <div class="drop-zone" onclick="document.getElementById('file_osha300a').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'osha300a')">
+                  <i class="fa-solid fa-file-pdf"></i>
+                  <p>Drag & drop OSHA 300A log images or PDFs</p>
+                  <input type="file" id="file_osha300a" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'osha300a')">
+                </div>
+                <input type="hidden" id="url_osha300a">
+                <div id="preview_osha300a" class="file-preview hidden"></div>
+              </div>
+
+              <div class="mt-3 flex-between">
+                <button class="btn btn-secondary" onclick="app.setStep('partB')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary" onclick="app.setStep('partD')">Next: Part D (Questionnaires) <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP D: HEALTH & SAFETY PROGRAM QUESTIONNAIRE -->
+          <div id="step-partD" class="step-content hidden">
+            
+            <!-- D-1 Management Commitment -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-user-check" style="color: var(--success);"></i> PART D-1: Management Commitment Questionnaire</h2>
+              </div>
+              <div id="q_container_d1"></div>
+            </div>
+
+            <!-- D-2 Training Questionnaire -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-chalkboard-user" style="color: var(--primary);"></i> PART D-2: Employee Safety Training Questionnaire</h2>
+              </div>
+              <div id="q_container_d2"></div>
+            </div>
+
+            <!-- D-3 Quality Management System Questionnaire -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-diagram-project" style="color: var(--accent-teal);"></i> PART D-3: Quality Management System (ISO)</h2>
+              </div>
+              <div id="q_container_d3"></div>
+            </div>
+
+            <div class="mt-3 flex-between mb-3">
+              <button class="btn btn-secondary" onclick="app.setStep('partC')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+              <button class="btn btn-primary" onclick="app.setStep('partE')">Next: Part E (Acknowledgement) <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+          </div>
+
+          <!-- STEP E: CONTRACTOR MANAGEMENT REPRESENTATIVE ACKNOWLEDGEMENT -->
+          <div id="step-partE" class="step-content hidden">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-file-signature" style="color: var(--primary);"></i> PART E - CONTRACTOR MANAGEMENT ACKNOWLEDGEMENT</h2>
+              </div>
+              
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                <p style="margin-bottom: 0.75rem;">The preceding information provided within this pre-qualification package is correct and accurate to the best of my knowledge.</p>
+                <p>As an authorized Management Representative for our organization; I acknowledge that we are expected and required to follow all appropriate Federal, State, and governing Safety and Health Administration Legislation, Worksite Rules and Requirements. Deviation from Policies, Standards, procedures, or rules and/or violation of any Federal, State or governing legislation; may be deemed cause for termination of any contractual agreements held between our organization and MAXX Industries Ltd and its subsidiaries.</p>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Company Name *</label>
+                  <input type="text" id="partE_companyName" required>
+                </div>
+                <div class="form-group">
+                  <label>Phone # *</label>
+                  <input type="text" id="partE_phone" required>
+                </div>
+                <div class="form-group">
+                  <label>Fax #</label>
+                  <input type="text" id="partE_fax">
+                </div>
+                <div class="form-group">
+                  <label>Email *</label>
+                  <input type="email" id="partE_email" required>
+                </div>
+                <div class="form-group">
+                  <label>Management Representative (Print Name) *</label>
+                  <input type="text" id="partE_repName" required placeholder="Authorized Representative Name">
+                </div>
+                <div class="form-group">
+                  <label>Date *</label>
+                  <input type="date" id="partE_date" required>
+                </div>
+                <div class="form-group full-width">
+                  <label>Management Representative Digital Signature *</label>
+                  <input type="text" id="partE_signature" required placeholder="Type Full Name to act as Digital Signature" oninput="app.updateSignatureBox(this.value)">
+                  <div class="signature-box mt-2" id="sigPreviewBox">Digitally Signed By Representative</div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex-between">
+                <button class="btn btn-secondary" onclick="app.setStep('partD')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <div class="flex-between gap-2">
+                  <button class="btn btn-secondary" onclick="app.savePrequal(false)"><i class="fa-solid fa-floppy-disk"></i> Save Draft</button>
+                  <button class="btn btn-success" onclick="app.savePrequal(true)"><i class="fa-solid fa-paper-plane"></i> Submit to MAXX Industries</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP F: MAXX INDUSTRIES REVIEW & SIGN OFF -->
+          <div id="step-partF" class="step-content hidden">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title"><i class="fa-solid fa-stamp" style="color: var(--danger);"></i> PART F - MAXX Industries Ltd | REVIEW & SIGN OFF</h2>
+              </div>
+              
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">Sub-Contractor Name: <strong id="partF_subcontractorName" style="color: var(--text-main);">Contractor Company</strong></p>
+
+              <div style="background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: var(--success-text);">
+                "I have reviewed the pre-qualification information contained within this form along with the supporting documentation provided and am comfortable with having this sub-contractor become a service provider for MAXX Industries Ltd."
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Operations Manager Sign-Off (Print Name)</label>
+                  <input type="text" id="partF_opsManager" placeholder="Operations Manager Name">
+                </div>
+                <div class="form-group">
+                  <label>Operations Review Date</label>
+                  <input type="date" id="partF_opsDate">
+                </div>
+                <div class="form-group">
+                  <label>HSE or Designate Sign-Off (Print Name)</label>
+                  <input type="text" id="partF_hseOfficer" placeholder="HSE Officer Name">
+                </div>
+                <div class="form-group">
+                  <label>HSE Review Date</label>
+                  <input type="date" id="partF_hseDate">
+                </div>
+                <div class="form-group full-width">
+                  <label>Review Decision & Comments</label>
+                  <textarea id="partF_comments" placeholder="Notes, comments, or conditions of approval..."></textarea>
+                </div>
+              </div>
+
+              <div id="adminSignOffActions" class="mt-3 flex-between">
+                <button class="btn btn-secondary" onclick="app.setStep('partE')"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                <div class="flex-between gap-2" id="adminSignOffButtons">
+                  <button class="btn btn-danger" onclick="app.adminSignOff('rejected')"><i class="fa-solid fa-xmark"></i> Reject Application</button>
+                  <button class="btn btn-success" onclick="app.adminSignOff('approved')"><i class="fa-solid fa-check"></i> Approve & Sign Off</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- TAB 3: CERTIFICATES & EXPIRATION WARNING CENTER -->
+      <section id="tab-certificates" class="tab-content hidden">
+        
+        <!-- Mandated Certificate Policy Checklists (Separated Company / Employee Scope in List View) -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><i class="fa-solid fa-building-shield" style="color: var(--warning);"></i> 1. MAXX Mandated Company Policy Certificates & Insurance Checklist</h2>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Mandatory insurance policies, liability coverage, and safety pre-qualification documents. Upload and update files directly from this view.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnUploadCompanyPolicyDoc" onclick="app.openAddCertModal()"><i class="fa-solid fa-plus"></i> Upload Company Policy Document</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Policy Requirement Title</th>
+                  <th>Category</th>
+                  <th>Mandatory Status</th>
+                  <th>Your Current Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="requiredCompanyPolicyTableBody">
+                <tr><td colspan="5" class="text-center">Loading company policy checklist...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title"><i class="fa-solid fa-id-badge" style="color: var(--accent-teal);"></i> 2. MAXX Mandated Employee / Worker Qualification Checklist</h2>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Mandatory safety tickets, trade certifications, and health tests required for workers. Submit tickets directly for Admin approval.</p>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="app.openAddPersonnelCertModal()"><i class="fa-solid fa-user-plus"></i> Submit Worker Qualification</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Worker Qualification Requirement</th>
+                  <th>Category</th>
+                  <th>Mandatory Status</th>
+                  <th>Your Current Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="requiredEmployeePolicyTableBody">
+                <tr><td colspan="5" class="text-center">Loading worker qualification checklist...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h1 class="card-title"><i class="fa-solid fa-building-shield" style="color: var(--warning);"></i> Company Compliance Certificates</h1>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Company-level liability, workers comp, and safety policies.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnAddCompanyCert" onclick="app.openAddCertModal()"><i class="fa-solid fa-plus"></i> Add Company Cert</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Preview</th>
+                  <th>Contractor Company</th>
+                  <th>Certificate Title</th>
+                  <th>Type</th>
+                  <th>Issue Date</th>
+                  <th>Expiry Date</th>
+                  <th>Validity Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="certTableBody">
+                <tr><td colspan="8" class="text-center">Loading company certificates...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Personnel / Delegated Employee Certificates Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h1 class="card-title"><i class="fa-solid fa-id-badge" style="color: var(--accent-teal);"></i> Delegated Employee Certificates</h1>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Individual worker safety qualifications required by MAXX (H2S Alive, CSTS, First Aid, Fit Test, Trade Ticket).</p>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="app.openAddPersonnelCertModal()"><i class="fa-solid fa-user-plus"></i> Submit Employee Cert</button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Preview</th>
+                  <th>Employee Name</th>
+                  <th>Contractor Company</th>
+                  <th>Requirement / Title</th>
+                  <th>Issue Date</th>
+                  <th>Expiry Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="personnelCertTableBody">
+                <tr><td colspan="8" class="text-center">Loading employee certificates...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: COMPANY PERSONNEL -->
+      <section id="tab-personnel" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h1 class="card-title"><i class="fa-solid fa-users-gear" style="color: var(--primary);"></i> Company Personnel & Workers Roster</h1>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Manage company personnel who are delegated to submit required employee certificates for MAXX jobsites.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <div style="position:relative; min-width:260px;">
+                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                <input type="text" id="personnelSearchInput" onkeyup="app.handlePersonnelSearch(this.value)" placeholder="Search worker, title, company..." style="padding-left:36px; font-size:0.85rem; width:100%;">
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.openAddEmployeeModal()"><i class="fa-solid fa-user-plus"></i> Add Employee</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee Name</th>
+                  <th>Job Title / Role</th>
+                  <th>Company</th>
+                  <th>Contact Email</th>
+                  <th>Phone Number</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="employeesTableBody">
+                <tr><td colspan="6" class="text-center">Loading personnel roster...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: MAXX SAFETY COURSES -->
+      <section id="tab-courses" class="tab-content hidden">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h1 class="card-title"><i class="fa-solid fa-graduation-cap" style="color: var(--accent-teal);"></i> MAXX Safety Courses Portal</h1>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Required and elective safety orientation courses for MAXX Industries job sites.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="app.openRecordCourseModal()"><i class="fa-solid fa-user-check"></i> Record Completion</button>
+          </div>
+
+          <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-main);">Available MAXX Safety Courses Catalog</h3>
+          <div class="stat-grid" id="courseCatalogGrid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Employee Course Completion Log</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Contractor Company</th>
+                    <th>Course Title</th>
+                    <th>Certificate #</th>
+                    <th>Completion Date</th>
+                    <th>Expiry Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="courseLogTableBody">
+                  <tr><td colspan="7" class="text-center">Loading completions...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: PRINTABLE SAFETY & COMPLIANCE AUDIT REPORT -->
+      <section id="tab-audit" class="tab-content hidden">
+        <div class="card no-print" style="margin-bottom: 1.5rem;">
+          <div class="flex-between">
+            <div>
+              <h2 style="font-size:1.1rem; margin-bottom:0.2rem;"><i class="fa-solid fa-file-shield" style="color:var(--primary);"></i> Safety & Compliance Audit Portal</h2>
+              <p style="font-size:0.85rem; color:var(--text-muted);">Generate and print official contractor safety audit verification reports for MAXX Industries Ltd compliance audits.</p>
+            </div>
+            <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Official Audit Report / Export PDF</button>
+          </div>
+        </div>
+
+        <!-- FORMAL PRINTABLE AUDIT REPORT DOCUMENT -->
+        <div class="audit-report-container" id="printableAuditReport">
+          
+          <!-- AUDIT REPORT HEADER & STAMP -->
+          <div class="audit-header">
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <div style="font-size:2.2rem; color:var(--primary);"><i class="fa-solid fa-shield-halved"></i></div>
+              <div>
+                <h1 style="font-size:1.4rem; font-weight:800; text-transform:uppercase; color:var(--text-main); margin:0;">MAXX INDUSTRIES LTD</h1>
+                <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">CONTRACTOR SAFETY & COMPLIANCE AUDIT REPORT</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div style="font-size:0.8rem; color:var(--text-muted);">AUDIT REFERENCE NUMBER</div>
+              <code style="font-size:1.1rem; font-weight:700; color:var(--primary);" id="auditRefNum">AUD-2026-98104</code><br>
+              <span style="font-size:0.78rem; color:var(--text-dim);" id="auditTimestamp">Audit Date: July 21, 2026</span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+            <!-- CONTRACTOR PROFILE AUDIT SUMMARY -->
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding:1.25rem; background:#ffffff;">
+              <h3 style="font-size:1rem; border-bottom:2px solid var(--primary); padding-bottom:0.4rem; margin-bottom:0.75rem; text-transform:uppercase;">SECTION 1: CONTRACTOR ORGANIZATION PROFILE</h3>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; font-size:0.88rem;">
+                <div><strong>Contractor Company:</strong> <span id="auditCompName">Acme Industrial Services Ltd.</span></div>
+                <div><strong>Operating Jurisdiction:</strong> <span id="auditCountry">🇨🇦 Canada (WCB / OH&S)</span></div>
+                <div><strong>Primary Contact:</strong> <span id="auditContact">John Doe, HSE Director</span></div>
+                <div><strong>ISNetworld ID#:</strong> <code id="auditIsnet">400-123456</code></div>
+                <div><strong>GST/HST Business #:</strong> <code id="auditGst">123456789 RT 0001</code></div>
+                <div><strong>WCB / WSIB Account #:</strong> <code id="auditWcb">WCB-9876543</code></div>
+                <div><strong>COR / SECOR Cert #:</strong> <code id="auditCor">COR-2026-10492</code></div>
+                <div><strong>Contact Email:</strong> <span id="auditEmail">safety@company.com</span></div>
+                       <!-- COMPLIANCE STATUS SCORECARD STAMP -->
+            <div id="auditScorecardBox" style="border: 2px solid var(--success-border); background: var(--success-bg); border-radius: var(--radius-sm); padding:1.25rem; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+              <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--success-text);">AUDIT CLEARANCE STATUS</span>
+              <div style="font-size:1.35rem; font-weight:900; color:var(--success-text); margin:0.4rem 0;" id="auditScorecardBadge">VERIFIED & APPROVED</div>
+              <span style="font-size:0.78rem; color:var(--success-text);" id="auditSignOffDetails">Part F Operations & HSE Approved</span>
+            </div>
+          </div>
+
+          <!-- AUDIT DEFICIENCIES SUMMARY CARD (Shown when audit fails or has missing items) -->
+          <div id="auditDeficienciesCard" class="hidden" style="background:#fef2f2; border: 2px solid #fca5a5; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem; color:#991b1b;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; text-transform: uppercase; display:flex; align-items:center; gap:0.5rem;">
+              <i class="fa-solid fa-triangle-exclamation fa-lg"></i> AUDIT DEFICIENCIES & COMPLIANCE ACTION ITEMS (<span id="auditDeficiencyCount">0</span>)
+            </h4>
+            <ul id="auditDeficienciesList" style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem; line-height: 1.6;"></ul>
+          </div>
+
+          <!-- SECTION 2: 3-YEAR INCIDENT METRICS AUDIT -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding:1.25rem; background:#ffffff; margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem; border-bottom:2px solid var(--primary); padding-bottom:0.4rem; margin-bottom:0.75rem; text-transform:uppercase;">SECTION 2: 3-YEAR SAFETY & INCIDENT METRICS AUDIT</h3>
+            <table class="data-table" style="font-size:0.85rem;">
+              <thead>
+                <tr>
+                  <th>Incident Metric</th>
+                  <th>2024</th>
+                  <th>2023</th>
+                  <th>2022</th>
+                  <th>3-Year Industry Rating</th>
+                </tr>
+              </thead>
+              <tbody id="auditIncidentBody">
+                <tr><td>Workforce Accumulated Hours</td><td>120,000</td><td>115,000</td><td>110,000</td><td>Standard Baseline</td></tr>
+                <tr><td>Total Recordable Injury Rate (TRIR)</td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><span class="badge badge-active">Excellent</span></td></tr>
+                <tr><td>Lost Time Injury Rate (LTIR)</td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><span class="badge badge-active">Zero LTI</span></td></tr>
+                <tr><td>Days Away / Restricted Rate (DART)</td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><strong>0.00</strong></td><td><span class="badge badge-active">Zero DART</span></td></tr>
+                <tr><td>Experience Modification Rate (EMR) / Premium</td><td>1.00</td><td>1.00</td><td>1.00</td><td>Satisfactory</td></tr>
+                <tr><td>Workplace Fatalities / Citations</td><td>0 / 0</td><td>0 / 0</td><td>0 / 0</td><td>Clean Record</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SECTION 3: COMPANY MANDATED COMPLIANCE CERTIFICATES -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding:1.25rem; background:#ffffff; margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem; border-bottom:2px solid var(--primary); padding-bottom:0.4rem; margin-bottom:0.75rem; text-transform:uppercase;">SECTION 3: MANDATED COMPANY INSURANCE & SAFETY POLICY AUDIT</h3>
+            <table class="data-table" style="font-size:0.85rem;">
+              <thead>
+                <tr>
+                  <th>Compliance Requirement</th>
+                  <th>Policy Scope / Required Limit</th>
+                  <th>Document Status</th>
+                  <th>Expiration Date</th>
+                  <th>Audit Result</th>
+                </tr>
+              </thead>
+              <tbody id="auditCompanyCertBody">
+                <tr><td colspan="5" class="text-center">Loading company compliance audit...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SECTION 4: COMPANY WORKERS & DELEGATED SAFETY CERTIFICATES AUDIT -->
+          <div style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding:1.25rem; background:#ffffff; margin-bottom:1.5rem;">
+            <h3 style="font-size:1rem; border-bottom:2px solid var(--primary); padding-bottom:0.4rem; margin-bottom:0.75rem; text-transform:uppercase;">SECTION 4: COMPANY WORKERS & DELEGATED SAFETY CERTIFICATES ROSTER</h3>
+            <table class="data-table" style="font-size:0.85rem;">
+              <thead>
+                <tr>
+                  <th>Worker Name</th>
+                  <th>Job Title / Position</th>
+                  <th>Required Safety Qualification</th>
+                  <th>Issue Date</th>
+                  <th>Expiration Date</th>
+                  <th>Audit Status</th>
+                </tr>
+              </thead>
+              <tbody id="auditWorkerCertBody">
+                <tr><td colspan="6" class="text-center">Loading worker safety qualifications audit...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- AUDIT SIGNATURE & VERIFICATION STAMP -->
+          <div style="border-top:2px dashed var(--border-color); padding-top:1.5rem; display:grid; grid-template-columns: 1fr 1fr; gap:2rem; margin-top:2rem;">
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">MAXX Industries HSE Auditor Sign-Off:</div>
+              <div style="border-bottom:1px solid #94a3b8; height:40px; margin-bottom:0.3rem;"></div>
+              <span style="font-size:0.85rem; font-weight:700;" id="auditHseSigner">HSE Officer & Compliance Designate</span>
+            </div>
+            <div>
+              <div style="font-size:0.8rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">MAXX Operations Manager Sign-Off:</div>
+              <div style="border-bottom:1px solid #94a3b8; height:40px; margin-bottom:0.3rem;"></div>
+              <span style="font-size:0.85rem; font-weight:700;" id="auditOpsSigner">Operations Director</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+      </section>
+
+      <!-- TAB 6: ADMIN CONSOLE -->
+      <section id="tab-admin" class="tab-content hidden">
+        
+        <!-- Company Selector Filter Bar -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; box-shadow: var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <i class="fa-solid fa-building-user fa-lg" style="color:var(--primary);"></i>
+            <div>
+              <strong style="font-size:0.95rem;">Select Contractor Company:</strong>
+              <div style="font-size:0.8rem; color:var(--text-muted);">Filter compliance records, pre-qualifications, and personnel by contractor</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <select id="adminCompanyFilterSelect" onchange="app.handleAdminCompanyFilterChange(this.value)" style="font-weight:600; border-color:var(--primary); min-width:240px;">
+              <option value="all">All Registered Companies (Global View)</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="app.openAssignTaskModal()"><i class="fa-solid fa-plus-circle"></i> Assign Training / Request Cert</button>
+          </div>
+        </div>
+
+        <!-- Admin Sub-Navigation -->
+        <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+          <button class="btn btn-secondary active" id="adminSubTabVendors" onclick="app.setAdminSubTab('vendors')"><i class="fa-solid fa-list-check"></i> Contractor Applications</button>
+          <button class="btn btn-secondary" id="adminSubTabPersonnel" onclick="app.setAdminSubTab('personnel')"><i class="fa-solid fa-users"></i> Company Personnel Roster</button>
+          <button class="btn btn-secondary" id="adminSubTabCompanyCertReq" onclick="app.setAdminSubTab('companyCertReq')"><i class="fa-solid fa-building-shield"></i> Company Cert Policy</button>
+          <button class="btn btn-secondary" id="adminSubTabEmployeeCertReq" onclick="app.setAdminSubTab('employeeCertReq')"><i class="fa-solid fa-id-badge"></i> Employee Cert Policy</button>
+          <button class="btn btn-secondary" id="adminSubTabCourseReq" onclick="app.setAdminSubTab('courseReq')"><i class="fa-solid fa-book"></i> Safety Courses Policy</button>
+          <button class="btn btn-secondary" id="adminSubTabJobRolePresets" onclick="app.setAdminSubTab('jobRolePresets')"><i class="fa-solid fa-user-gear"></i> Job Role Presets Matrix</button>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 1: VENDORS PREQUAL APPLICATIONS -->
+        <div id="adminView-vendors" class="admin-sub-view">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title"><i class="fa-solid fa-user-shield" style="color: var(--danger);"></i> MAXX Admin Review Console</h2>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Contractor Company</th>
+                    <th>Jurisdiction</th>
+                    <th>Contact</th>
+                    <th>ISNetworld ID</th>
+                    <th>GST / Tax ID</th>
+                    <th>Prequal Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminVendorsBody">
+                  <tr><td colspan="7" class="text-center">Loading vendors...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 2: COMPANY PERSONNEL ROSTER -->
+        <div id="adminView-personnel" class="admin-sub-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title"><i class="fa-solid fa-users-gear" style="color: var(--primary);"></i> Company Personnel & Workers Management</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Manage contractor employees and submit delegated certificates for safety compliance.</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                <div style="position:relative; min-width:260px;">
+                  <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted);"></i>
+                  <input type="text" id="adminPersonnelSearchInput" onkeyup="app.handleAdminPersonnelSearch(this.value)" placeholder="Search worker, title, company..." style="padding-left:36px; font-size:0.85rem; width:100%;">
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="app.openEmailWorkerPassportModal()"><i class="fa-solid fa-envelope"></i> Email QR Passport</button>
+                <button class="btn btn-primary btn-sm" onclick="app.openAddEmployeeModal()"><i class="fa-solid fa-user-plus"></i> Add Worker</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Contractor Company</th>
+                    <th>Job Title</th>
+                    <th>Contact Email</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminPersonnelBody">
+                  <tr><td colspan="6" class="text-center">Loading personnel roster...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 3: COMPANY CERTIFICATES POLICY CONFIGURATOR -->
+        <div id="adminView-companyCertReq" class="admin-sub-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title"><i class="fa-solid fa-building-shield" style="color: var(--warning);"></i> Mandated Company Policy Certificates Configurator</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Set what insurance and compliance policies contractor organizations must submit. Toggle Mandatory vs Optional status.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.openAddRequiredCertModal('company')"><i class="fa-solid fa-plus"></i> Add Company Policy Requirement</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Requirement Title</th>
+                    <th>Target Scope</th>
+                    <th>Category</th>
+                    <th>Mandatory Status</th>
+                    <th>Description / Policy</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCompanyCertReqBody">
+                  <tr><td colspan="6" class="text-center">Loading company certificate policy requirements...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 4: EMPLOYEE CERTIFICATES POLICY CONFIGURATOR -->
+        <div id="adminView-employeeCertReq" class="admin-sub-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title"><i class="fa-solid fa-id-badge" style="color: var(--accent-teal);"></i> Mandated Delegated Employee Qualifications Configurator</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Set what safety tickets and trade qualifications individual site workers must submit. Toggle Mandatory vs Optional status.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.openAddRequiredCertModal('employee')"><i class="fa-solid fa-plus"></i> Add Worker Qualification Requirement</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Requirement Title</th>
+                    <th>Target Scope</th>
+                    <th>Category</th>
+                    <th>Mandatory Status</th>
+                    <th>Description / Policy</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminEmployeeCertReqBody">
+                  <tr><td colspan="6" class="text-center">Loading employee qualification policies...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 3: SAFETY COURSES CONFIGURATOR -->
+        <div id="adminView-courseReq" class="admin-sub-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title"><i class="fa-solid fa-book-bookmark" style="color: var(--accent-teal);"></i> Safety Courses Requirements Configurator</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Set mandatory vs optional safety courses for contractor workers.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.openAddCourseModal()"><i class="fa-solid fa-plus"></i> Create Safety Course</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Course Code & Title</th>
+                    <th>Category</th>
+                    <th>Duration</th>
+                    <th>Requirement Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminCourseReqBody">
+                  <tr><td colspan="5" class="text-center">Loading safety courses...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 6: JOB ROLE PRESETS MATRIX -->
+        <div id="adminView-jobRolePresets" class="admin-sub-view hidden">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title"><i class="fa-solid fa-user-gear" style="color: var(--primary);"></i> Job Role Training & Qualification Presets Matrix</h2>
+                <p style="font-size:0.85rem; color:var(--text-muted);">Define role-based safety course checklists and required qualification tickets per job title (e.g. Tracking Technician, Site Supervisor, Safety Tech).</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="app.openAddJobRolePresetModal()"><i class="fa-solid fa-plus-circle"></i> Add Job Role Preset</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Job Role Title</th>
+                    <th>Description</th>
+                    <th>Required Safety Courses Checklist</th>
+                    <th>Required Qualification Tickets Checklist</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminJobRolePresetsBody">
+                  <tr><td colspan="5" class="text-center">Loading job role presets...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- AUTH MODAL (LOGIN / REGISTER) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;" id="authModalTitle">Sign In to MAXX VMS</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeAuthModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="app.handleLogin(event)">
+        <div class="form-group mb-3">
+          <label>Username</label>
+          <input type="text" id="loginUsername" required placeholder="admin or username">
+        </div>
+        <div class="form-group mb-3">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+        <p class="text-center mt-3" style="font-size: 0.85rem; color: var(--text-muted);">
+          New contractor? <a href="#" onclick="app.toggleAuthForm('register')" style="color: var(--primary);">Register your company here</a>
+        </p>
+      </form>
+
+      <!-- Registration Form -->
+      <form id="registerForm" class="hidden" onsubmit="app.handleRegister(event)">
+        <div class="form-group mb-3">
+          <label>Username *</label>
+          <input type="text" id="regUsername" required placeholder="e.g. acme_contracting">
+        </div>
+        <div class="form-group mb-3">
+          <label>Password *</label>
+          <input type="password" id="regPassword" required placeholder="••••••••">
+        </div>
+        <div class="form-group mb-3">
+          <label>Contractor Company Name *</label>
+          <input type="text" id="regCompanyName" required placeholder="e.g. Acme Industrial Services Ltd.">
+        </div>
+        <div class="form-group mb-3">
+          <label>Primary Contact Name</label>
+          <input type="text" id="regContact" placeholder="Full Name">
+        </div>
+        <div class="form-group mb-3">
+          <label>ISNetworld ID#</label>
+          <input type="text" id="regIsnetworld" placeholder="400-123456">
+        </div>
+        <div class="form-group mb-3">
+          <label>GST / Business Tax ID #</label>
+          <input type="text" id="regGstNumber" placeholder="e.g. 123456789 RT 0001">
+        </div>
+        <div class="form-group mb-3">
+          <label>Phone Number</label>
+          <input type="text" id="regPhone" placeholder="(555) 000-0000">
+        </div>
+        <div class="form-group mb-3">
+          <label>Email *</label>
+          <input type="email" id="regEmail" required placeholder="contact@company.com">
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;"><i class="fa-solid fa-user-plus"></i> Register Contractor Account</button>
+        <p class="text-center mt-3" style="font-size: 0.85rem; color: var(--text-muted);">
+          Already registered? <a href="#" onclick="app.toggleAuthForm('login')" style="color: var(--primary);">Login here</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD COMPANY CERTIFICATE MODAL -->
+  <div class="modal-overlay" id="addCertModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Add Company Compliance Certificate</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAddCertModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleAddCert(event)">
+        <div class="form-group mb-3">
+          <label>Certificate Title *</label>
+          <input type="text" id="certTitle" required placeholder="e.g. General Liability Policy 2026">
+        </div>
+        <div class="form-group mb-3">
+          <label>Certificate Type</label>
+          <select id="certType">
+            <option value="Commercial General Liability">Commercial General Liability ($5M)</option>
+            <option value="Automobile Liability">Automobile Liability ($2M)</option>
+            <option value="Cargo Insurance">Cargo Insurance ($1M)</option>
+            <option value="Workers Compensation">Workers Compensation</option>
+            <option value="Health & Safety Program">Health & Safety Program</option>
+            <option value="Drug & Alcohol Plan">Drug & Alcohol Plan</option>
+            <option value="EMR Statement">EMR Statement</option>
+            <option value="Other">Other Certificate</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Issue Date</label>
+          <input type="date" id="certIssueDate" onchange="app.handleIssueDateChange('certIssueDate', 'certExpiryDate', 'certTitle')">
+        </div>
+        <div class="form-group mb-3">
+          <label>Expiry Date * <small style="color:var(--primary); font-weight:600;">(Auto-Anticipated)</small></label>
+          <input type="date" id="certExpiryDate" required>
+        </div>
+        <div class="form-group mb-3">
+          <label>Document / Image Upload (Drag & Drop or Click)</label>
+          <div class="drop-zone" onclick="document.getElementById('certFile').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'newcert')">
+            <i class="fa-solid fa-image"></i>
+            <p>Drag & drop image file (PNG, JPG, WEBP) or PDF here</p>
+            <span>Click to select file</span>
+            <input type="file" id="certFile" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'newcert')">
+          </div>
+          <input type="hidden" id="url_newcert">
+          <div id="preview_newcert" class="file-preview hidden"></div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-check"></i> Save Certificate</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD DELEGATED PERSONNEL CERTIFICATE MODAL -->
+  <div class="modal-overlay" id="addPersonnelCertModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Submit Employee Certificate</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAddPersonnelCertModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleAddPersonnelCert(event)">
+        <div class="form-group mb-3">
+          <label>Select Employee / Worker *</label>
+          <select id="pCertEmployeeSelect" required></select>
+        </div>
+        <div class="form-group mb-3">
+          <label>MAXX Requirement / Certificate Title *</label>
+          <select id="pCertReqSelect" required onchange="app.handleIssueDateChange('pCertIssueDate', 'pCertExpiryDate', 'pCertReqSelect')"></select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Issue Date</label>
+          <input type="date" id="pCertIssueDate" onchange="app.handleIssueDateChange('pCertIssueDate', 'pCertExpiryDate', 'pCertReqSelect')">
+        </div>
+        <div class="form-group mb-3">
+          <label>Expiry Date * <small style="color:var(--primary); font-weight:600;">(Auto-Anticipated based on policy: 3Yr First Aid / H2S, 1Yr WHMIS/Ins)</small></label>
+          <input type="date" id="pCertExpiryDate" required>
+        </div>
+        <div class="form-group mb-3">
+          <label>Document Upload (Drag & Drop or Click)</label>
+          <div class="drop-zone" onclick="document.getElementById('pCertFile').click()" ondragover="app.handleDragOver(event, this)" ondragleave="app.handleDragLeave(event, this)" ondrop="app.handleDrop(event, 'pcert')">
+            <i class="fa-solid fa-id-card"></i>
+            <p>Drag & drop card image or PDF here</p>
+            <input type="file" id="pCertFile" accept="image/*,.pdf" onchange="app.handleFileUpload(this, 'pcert')">
+          </div>
+          <input type="hidden" id="url_pcert">
+          <div id="preview_pcert" class="file-preview hidden"></div>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;"><i class="fa-solid fa-check"></i> Submit Personnel Certificate</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD EMPLOYEE / WORKER MODAL -->
+  <div class="modal-overlay" id="addEmployeeModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Add Company Worker</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAddEmployeeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleAddEmployee(event)">
+        <div class="form-group mb-3">
+          <label>Employee Full Name *</label>
+          <input type="text" id="empName" required placeholder="e.g. John Doe">
+        </div>
+        <div class="form-group mb-3">
+          <label>Job Title / Position</label>
+          <input type="text" id="empTitle" placeholder="e.g. Site Supervisor / Technician">
+        </div>
+        <div class="form-group mb-3">
+          <label>Email Address</label>
+          <input type="email" id="empEmail" placeholder="employee@company.com">
+        </div>
+        <div class="form-group mb-3">
+          <label>Phone Number</label>
+          <input type="text" id="empPhone" placeholder="(555) 000-0000">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-user-plus"></i> Save Employee</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN: ADD/EDIT REQUIRED CERTIFICATE POLICY MODAL -->
+  <div class="modal-overlay" id="addRequiredCertModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Configure Certificate Policy Requirement</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAddRequiredCertModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleSaveRequiredCert(event)">
+        <input type="hidden" id="reqCertId">
+        <div class="form-group mb-3">
+          <label>Requirement Title *</label>
+          <input type="text" id="reqCertTitle" required placeholder="e.g. OSHA 30-Hour Safety Card">
+        </div>
+        <div class="form-group mb-3">
+          <label>Target Scope *</label>
+          <select id="reqCertScope">
+            <option value="company">Company Level (Insurance, Policy)</option>
+            <option value="employee">Employee / Personnel Level (Safety Card, Trade Ticket)</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Category</label>
+          <input type="text" id="reqCertCategory" placeholder="e.g. Insurance, Safety Card, Transport">
+        </div>
+        <div class="form-group mb-3">
+          <label>Requirement Status *</label>
+          <select id="reqCertMandatory">
+            <option value="true">Mandatory (Required by MAXX)</option>
+            <option value="false">Optional (Elective)</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Policy Description</label>
+          <textarea id="reqCertDescription" placeholder="Specific policy rules or limits..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Save Requirement Policy</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN: ADD/EDIT SAFETY COURSE MODAL -->
+  <div class="modal-overlay" id="addCourseModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Create / Edit Safety Course</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAddCourseModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleSaveCourse(event)">
+        <input type="hidden" id="courseId">
+        <div class="form-group mb-3">
+          <label>Course Code *</label>
+          <input type="text" id="cCode" required placeholder="e.g. MAXX-HSE-06">
+        </div>
+        <div class="form-group mb-3">
+          <label>Course Title *</label>
+          <input type="text" id="cTitle" required placeholder="e.g. H2S Alive Awareness">
+        </div>
+        <div class="form-group mb-3">
+          <label>Category</label>
+          <input type="text" id="cCategory" placeholder="High Hazard Safety">
+        </div>
+        <div class="form-group mb-3">
+          <label>Duration (Hours)</label>
+          <input type="number" step="0.5" id="cDuration" placeholder="2.0">
+        </div>
+        <div class="form-group mb-3">
+          <label>Requirement Status *</label>
+          <select id="cRequired">
+            <option value="true">Mandatory (Required by MAXX)</option>
+            <option value="false">Optional (Elective)</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Description</label>
+          <textarea id="cDescription" placeholder="Course outline details..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Save Safety Course</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECORD COURSE COMPLETION MODAL -->
+  <div class="modal-overlay" id="recordCourseModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;">Record Safety Course Completion</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeRecordCourseModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleRecordCourse(event)">
+        <div class="form-group mb-3">
+          <label>Employee Name *</label>
+          <input type="text" id="courseEmpName" required placeholder="Employee Full Name">
+        </div>
+        <div class="form-group mb-3">
+          <label>Select MAXX Course *</label>
+          <select id="courseSelect" required></select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Completion Date *</label>
+          <input type="date" id="courseCompDate" required>
+        </div>
+        <div class="form-group mb-3">
+          <label>Expiration Date (Default: 1 Year)</label>
+          <input type="date" id="courseExpDate">
+        </div>
+        <div class="form-group mb-3">
+          <label>Certificate #</label>
+          <input type="text" id="courseCertNum" placeholder="e.g. MXC-984321">
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;"><i class="fa-solid fa-award"></i> Record Course Completion</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT COMPANY ORGANIZATION & JURISDICTION MODAL -->
+  <div class="modal-overlay" id="editCompanyOrgModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;"><i class="fa-solid fa-building-gear" style="color:var(--primary);"></i> Edit Company Organization & Jurisdiction</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeEditCompanyOrgModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleSaveCompanyOrg(event)">
+        <input type="hidden" id="editOrgVendorId">
+        <div class="form-group mb-3">
+          <label>Company Name *</label>
+          <input type="text" id="editOrgCompanyName" required placeholder="Acme Industrial Services Ltd.">
+        </div>
+        <div class="form-group mb-3">
+          <label>Primary Operating Jurisdiction / Country *</label>
+          <select id="editOrgCountry">
+            <option value="Canada">🇨🇦 Canada (WCB / OH&S / COR)</option>
+            <option value="USA">🇺🇸 United States (OSHA / DOT / FEIN)</option>
+            <option value="Both">🇨🇦🇺🇸 Both Canada & USA</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label>GST / HST Business Number (Canada)</label>
+          <input type="text" id="editOrgGstNumber" placeholder="e.g. 123456789 RT 0001">
+        </div>
+        <div class="form-group mb-3">
+          <label>WCB / WSIB Account Number (Canada)</label>
+          <input type="text" id="editOrgTaxWcbNumber" placeholder="e.g. WCB-9876543">
+        </div>
+        <div class="form-group mb-3">
+          <label>COR / SECOR Certificate Number (Canada)</label>
+          <input type="text" id="editOrgCorNumber" placeholder="e.g. COR-2026-10492">
+        </div>
+        <div class="form-group mb-3">
+          <label>ISNetworld ID#</label>
+          <input type="text" id="editOrgIsnetworldId" placeholder="400-123456">
+        </div>
+        <div class="form-group mb-3">
+          <label>Primary Contact Name</label>
+          <input type="text" id="editOrgPrimaryContact">
+        </div>
+        <div class="form-group mb-3">
+          <label>Contact Phone</label>
+          <input type="text" id="editOrgPhone">
+        </div>
+        <div class="form-group mb-3">
+          <label>Contact Email *</label>
+          <input type="email" id="editOrgEmail" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-floppy-disk"></i> Save Organization Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- AUTO-GENERATED WORKER CREDENTIALS MODAL -->
+  <div class="modal-overlay" id="employeeCredentialsModal">
+    <div class="modal-box" style="text-align:center;">
+      <div style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.5rem;"><i class="fa-solid fa-circle-check"></i></div>
+      <h2 style="font-size: 1.3rem; margin-bottom: 0.5rem;">Worker Account Created Automatically!</h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+        An automatic login account has been generated for this employee so they can sign in and submit required safety certificates directly.
+      </p>
+
+      <div style="background: var(--primary-light); border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; text-align: left;">
+        <div style="margin-bottom: 0.5rem;">
+          <strong style="color:var(--text-muted); font-size:0.8rem; text-transform:uppercase;">Worker Username:</strong><br>
+          <code id="genCredUsername" style="font-size: 1.1rem; color: var(--primary);">worker.name</code>
+        </div>
+        <div>
+          <strong style="color:var(--text-muted); font-size:0.8rem; text-transform:uppercase;">Temporary Password:</strong><br>
+          <code id="genCredPassword" style="font-size: 1.1rem; color: var(--danger);">WorkerPass1234!</code>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%;" onclick="app.closeEmployeeCredentialsModal()">
+        <i class="fa-solid fa-check"></i> Done & Copy Credentials
+      </button>
+    </div>
+  </div>
+
+  <!-- ADMIN: ASSIGN SAFETY TRAINING OR REQUEST CERTIFICATE MODAL -->
+  <div class="modal-overlay" id="assignTaskModal">
+    <div class="modal-box">
+      <div class="flex-between mb-3">
+        <h2 style="font-size: 1.25rem;"><i class="fa-solid fa-tasks" style="color:var(--primary);"></i> Assign Training or Request Certificate</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="app.closeAssignTaskModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem;">
+        <button class="btn btn-secondary active" id="assignTypeBtnTraining" onclick="app.toggleAssignTaskType('training')"><i class="fa-solid fa-graduation-cap"></i> Assign Course</button>
+        <button class="btn btn-secondary" id="assignTypeBtnCert" onclick="app.toggleAssignTaskType('cert')"><i class="fa-solid fa-file-contract"></i> Request Certificate</button>
+      </div>
+
+      <form onsubmit="app.handleAssignTask(event)">
+        <input type="hidden" id="assignTaskType" value="training">
+        
+        <div class="form-group mb-3">
+          <label>Target Contractor Company *</label>
+          <select id="assignVendorSelect" onchange="app.handleAssignVendorChange(this.value)" required></select>
+        </div>
+
+        <div class="form-group mb-3">
+          <label>Target Worker (Optional - Leave blank for Company Scope)</label>
+          <select id="assignWorkerSelect">
+            <option value="">All Workers / Company Scope</option>
+          </select>
+        </div>
+
+        <!-- Course Selector (Training Mode) -->
+        <div class="form-group mb-3" id="assignCourseGroup">
+          <label>MAXX Safety Training Course *</label>
+          <select id="assignCourseSelect"></select>
+        </div>
+
+        <!-- Certificate Requirement Selector (Cert Request Mode) -->
+        <div class="form-group mb-3 hidden" id="assignCertGroup">
+          <label>Required Certificate Policy Title *</label>
+          <select id="assignCertReqSelect"></select>
+        </div>
+
+        <div class="form-group mb-3">
+          <label>Compliance Due Date *</label>
+          <input type="date" id="assignDueDate" required>
+        </div>
+
+        <div class="form-group mb-3">
+          <label>Instructions & Admin Notes</label>
+          <textarea id="assignNotes" placeholder="Enter instructions or specific compliance requirements for contractor..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fa-solid fa-paper-plane"></i> Send Assignment / Request</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FLOATING ZERO-KEY AI ASSISTANT BUTTON -->
+  <button id="aiFloatingBtn" onclick="app.toggleAiModal()" class="no-print" style="position: fixed; bottom: 24px; right: 24px; background: linear-gradient(135deg, #1e40af, #3b82f6); color: white; border: none; border-radius: 50px; padding: 0.85rem 1.4rem; font-weight: 700; font-size: 0.95rem; box-shadow: 0 10px 25px rgba(30, 64, 175, 0.4); cursor: pointer; display: flex; align-items: center; gap: 0.6rem; z-index: 9999; transition: all 0.3s ease;">
+    <i class="fa-solid fa-robot fa-lg"></i>
+    <span>MAXX Safety AI</span>
+    <span style="background: rgba(255,255,255,0.2); border-radius: 12px; padding: 2px 8px; font-size: 0.7rem; text-transform: uppercase;">Offline / No Key</span>
+  </button>
+
+  <!-- MAXX SAFETY AI ASSISTANT MODAL CHAT DIALOG -->
+  <div class="modal-overlay" id="aiAssistantModal">
+    <div class="modal-box" style="max-width: 650px; padding: 0; overflow: hidden; display: flex; flex-direction: column; max-height: 85vh;">
+      
+      <!-- AI Header -->
+      <div style="background: linear-gradient(135deg, #1e40af, #1e293b); color: white; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 1.1rem; margin: 0; color: #ffffff;">MAXX Safety AI Assistant</h3>
+            <p style="font-size: 0.78rem; margin: 0; color: #94a3b8;"><i class="fa-solid fa-shield-halved" style="color:var(--success);"></i> 100% Local Intelligence • Zero API Key Needed</p>
+          </div>
+        </div>
+        <button style="background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;" onclick="app.toggleAiModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Quick Action Pills -->
+      <div style="background: #f8fafc; border-bottom: 1px solid var(--border-color); padding: 0.75rem 1.25rem; display: flex; gap: 0.5rem; overflow-x: auto; flex-shrink: 0;">
+        <button class="btn btn-secondary btn-sm" onclick="app.sendAiQuickAction('Analyze current company audit')"><i class="fa-solid fa-stethoscope"></i> Analyze Audit</button>
+        <button class="btn btn-secondary btn-sm" onclick="app.sendAiQuickAction('Explain Canadian COR and WCB requirements')">🇨🇦 COR / WCB</button>
+        <button class="btn btn-secondary btn-sm" onclick="app.sendAiQuickAction('Explain OSHA 10/30 and EMR Calculation')">🇺🇸 OSHA & EMR</button>
+      </div>
+
+      <!-- Chat History Stream -->
+      <div id="aiChatStream" style="padding: 1.25rem; overflow-y: auto; flex-grow: 1; min-height: 280px; font-size: 0.9rem; line-height: 1.6; background: #ffffff;">
+        <div style="background: #f1f5f9; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem; color: #334155;">
+          👋 Hello! I am the <strong>MAXX Safety AI Assistant</strong>. I run locally on your system without requiring any external API keys or cloud connections.<br><br>
+          Ask me about <strong>Canadian COR / WCB standards</strong>, <strong>US OSHA / EMR calculations</strong>, or click <strong>"Analyze Audit"</strong> to run an instant risk diagnosis on any contractor!
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <form onsubmit="app.handleAiSubmit(event)" style="border-top: 1px solid var(--border-color); padding: 1rem 1.25rem; background: #f8fafc; display: flex; gap: 0.75rem;">
+        <input type="text" id="aiInputPrompt" placeholder="Ask AI about safety compliance, COR, OSHA, or audit rules..." required style="flex-grow: 1;">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- WORKER COMPLIANCE & QUALIFICATIONS PROFILE MODAL -->
+  <div class="modal-overlay" id="employeeProfileModal">
+    <div class="modal-box" style="max-width: 1100px; width: 95vw; max-height: 92vh; overflow-y: auto;">
+      <div class="flex-between mb-3" style="border-bottom: 2px solid var(--primary); padding-bottom: 0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.85rem;">
+          <div style="width:48px; height:48px; border-radius:50%; background:var(--primary-light); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800;" id="empProfileAvatar">
+            JD
+          </div>
+          <div>
+            <h2 style="font-size: 1.3rem; margin: 0;" id="empProfileName">John Doe</h2>
+            <span style="font-size: 0.85rem; color: var(--text-muted);" id="empProfileTitle">Superintendent • Acme Industrial Services</span>
+          </div>
+        </div>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeEmployeeProfileModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Profile Overview Cards & Scannable QR Badge -->
+      <div style="display:grid; grid-template-columns: 1.8fr 1.2fr 1fr; gap:1rem; margin-bottom:1.5rem; align-items:stretch;">
+        <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; font-size:0.88rem;">
+          <div style="font-weight:700; color:var(--text-muted); font-size:0.75rem; text-transform:uppercase; margin-bottom:0.5rem;">Contractor Organization & Contact</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+            <div><strong>Company:</strong> <span id="empProfileCompany">Acme Industrial Services</span></div>
+            <div><strong>Jurisdiction:</strong> <span id="empProfileCountry">🇨🇦 Canada</span></div>
+            <div><strong>Email:</strong> <span id="empProfileEmail">worker@company.com</span></div>
+            <div><strong>Phone:</strong> <span id="empProfilePhone">(555) 111-2222</span></div>
+            <div><strong>Username:</strong> <code id="empProfileUsername">worker.name</code></div>
+            <div><strong>Status:</strong> <span class="badge badge-active" id="empProfileStatus">Active Worker</span></div>
+          </div>
+        </div>
+
+        <div style="background:var(--success-bg); border:1px solid var(--success-border); border-radius:var(--radius-md); padding:1rem; text-align:center; display:flex; flex-direction:column; justify-content:center;" id="empProfileClearanceBox">
+          <span style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--success-text);">WORKSITE CLEARANCE</span>
+          <div style="font-size:1.15rem; font-weight:900; color:var(--success-text); margin:0.3rem 0;" id="empProfileClearanceBadge">JOBSITE CLEARED</div>
+          <span style="font-size:0.75rem; color:var(--success-text);" id="empProfileClearanceDetails">All Required Tickets Valid</span>
+        </div>
+
+        <!-- DIGITAL QR BADGE CARD -->
+        <div style="background:#ffffff; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:0.85rem; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+          <div style="font-size:0.7rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.4rem;">
+            <i class="fa-solid fa-qrcode" style="color:var(--primary);"></i> DIGITAL QR BADGE
+          </div>
+          <a id="empProfileQrLink" href="#" target="_blank" title="Click to open full site verification passport">
+            <img id="empProfileQrImg" src="" alt="Worker QR Badge" style="width:84px; height:84px; border-radius:6px; border:1px solid #cbd5e1; padding:2px; background:#fff;">
+          </a>
+          <div style="margin-top:0.4rem; display:flex; gap:0.3rem;">
+            <a id="empProfilePassportBtn" href="#" target="_blank" class="btn btn-secondary btn-sm" style="font-size:0.7rem; padding:2px 7px;">
+              <i class="fa-solid fa-external-link"></i> Passport
+            </a>
+            <button class="btn btn-primary btn-sm" style="font-size:0.7rem; padding:2px 7px;" onclick="app.printWorkerBadgeCard()">
+              <i class="fa-solid fa-print"></i> Badge
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submitted Qualifications Roster -->
+      <div style="margin-bottom: 1.5rem;">
+        <div class="flex-between mb-2">
+          <h3 style="font-size: 1rem; margin: 0;"><i class="fa-solid fa-certificate" style="color:var(--primary);"></i> Submitted Safety Qualifications</h3>
+          <button class="btn btn-primary btn-sm" onclick="app.openAddPersonnelCertModal()"><i class="fa-solid fa-upload"></i> Upload Ticket</button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" style="font-size:0.85rem;">
+            <thead>
+              <tr>
+                <th>Qualification / Ticket Title</th>
+                <th>Issue Date</th>
+                <th>Expiration Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="empProfileCertsBody">
+              <tr><td colspan="5" class="text-center">Loading worker certificates...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Safety Orientation Courses -->
+      <div style="margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-graduation-cap" style="color:var(--primary);"></i> MAXX Safety Courses Completed</h3>
+        <div class="table-responsive">
+          <table class="data-table" style="font-size:0.85rem;">
+            <thead>
+              <tr>
+                <th>Course Title</th>
+                <th>Cert #</th>
+                <th>Completion Date</th>
+                <th>Expiration Date</th>
+              </tr>
+            </thead>
+            <tbody id="empProfileCoursesBody">
+              <tr><td colspan="4" class="text-center">No safety courses completed yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pending Assigned Compliance Tasks & Admin Requests -->
+      <div>
+        <h3 style="font-size: 1rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-tasks" style="color:var(--warning-text);"></i> MAXX Assigned Tasks & Training Requests</h3>
+        <div class="table-responsive">
+          <table class="data-table" style="font-size:0.85rem;">
+            <thead>
+              <tr>
+                <th>Task Title / Required Item</th>
+                <th>Type</th>
+                <th>Due Date</th>
+                <th>Admin Notes</th>
+                <th>Action Status</th>
+              </tr>
+            </thead>
+            <tbody id="empProfileTasksBody">
+              <tr><td colspan="5" class="text-center">No pending training or certificate requests assigned.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CERTIFICATE REVIEW & APPROVAL MODAL -->
+  <div class="modal-overlay" id="reviewCertModal">
+    <div class="modal-box" style="max-width: 550px;">
+      <div class="flex-between mb-3" style="border-bottom: 2px solid var(--primary); padding-bottom: 0.75rem;">
+        <h2 style="font-size: 1.2rem; margin:0;" id="reviewModalTitle"><i class="fa-solid fa-stamp" style="color:var(--primary);"></i> Certificate Compliance Review</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeReviewCertModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="app.handleReviewCertSubmit(event)">
+        <input type="hidden" id="reviewCertId">
+        <input type="hidden" id="reviewIsPersonnel">
+        <input type="hidden" id="reviewDecision">
+
+        <!-- Target Certificate Summary Card -->
+        <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.25rem;">Reviewing Document</div>
+          <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);" id="reviewCertTitleDisplay">Commercial General Liability $5M</div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;" id="reviewCertVendorDisplay">Acme Industrial Services Ltd</div>
+        </div>
+
+        <!-- Decision Badge Header -->
+        <div id="reviewDecisionBanner" style="padding:0.75rem 1rem; border-radius:var(--radius-md); font-weight:700; font-size:0.9rem; margin-bottom:1.25rem; display:flex; align-items:center; gap:0.5rem;">
+          <i class="fa-solid fa-circle-check fa-lg"></i>
+          <span id="reviewDecisionText">APPROVING CERTIFICATE</span>
+        </div>
+
+        <!-- Rejection Presets (Shown when rejecting) -->
+        <div id="reviewPresetsContainer" class="mb-3 hidden">
+          <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.35rem; display:block;">Quick Reason Presets:</label>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="app.applyReviewPreset('Expired or invalid policy date')">Expired Date</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="app.applyReviewPreset('Missing MAXX Industries Ltd as Additional Insured')">Missing MAXX Named</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="app.applyReviewPreset('Coverage limit below required $5,000,000 threshold')">Below $5M Limit</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="app.applyReviewPreset('Illegible image / incomplete document scan')">Illegible Scan</button>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label>Review & Compliance Notes for Contractor *</label>
+          <textarea id="reviewNotesInput" rows="3" placeholder="Enter compliance approval confirmation or specific rejection instructions for contractor..." required></textarea>
+        </div>
+
+        <button type="submit" id="reviewSubmitBtn" class="btn btn-success" style="width: 100%; font-weight: 700; padding: 0.75rem;">
+          <i class="fa-solid fa-check"></i> Confirm Approval
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RESUBMIT / UPDATE CERTIFICATE MODAL -->
+  <div class="modal-overlay" id="editCertModal">
+    <div class="modal-box" style="max-width: 550px;">
+      <div class="flex-between mb-3" style="border-bottom: 2px solid var(--primary); padding-bottom: 0.75rem;">
+        <h2 style="font-size: 1.2rem; margin:0;" id="editCertModalTitle"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--primary);"></i> Resubmit Compliance Certificate</h2>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeEditCertModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="app.handleEditCertSubmit(event)">
+        <input type="hidden" id="editCertId">
+        <input type="hidden" id="editIsPersonnel">
+
+        <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+          <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.25rem;">Document Title</div>
+          <div style="font-size:1.05rem; font-weight:700; color:var(--text-main);" id="editCertTitleDisplay">Safety Program Manual</div>
+          <div style="font-size:0.85rem; color:var(--danger); font-weight:600; margin-top:0.25rem;" id="editCertReasonDisplay">Rejection Reason: Missing MAXX Named</div>
+        </div>
+
+        <div class="form-grid mb-3">
+          <div class="form-group">
+            <label>New Issue Date *</label>
+            <input type="date" id="editCertIssueDate" required>
+          </div>
+          <div class="form-group">
+            <label>New Expiration Date *</label>
+            <input type="date" id="editCertExpiryDate" required>
+          </div>
+          <div class="form-group full-width">
+            <label>Upload Document (Image / PDF File or URL) *</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="text" id="url_editCert" placeholder="Paste image/PDF link or click Upload" style="flex:1;">
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer; font-size:0.8rem; height:38px; display:inline-flex; align-items:center;">
+                <i class="fa-solid fa-upload"></i> Choose File
+                <input type="file" accept="image/*,.pdf" style="display:none;" onchange="app.handleFileUpload(this, 'editCert')">
+              </label>
+            </div>
+          </div>
+          <div class="form-group full-width">
+            <label>Resubmission / Renewal Notes</label>
+            <textarea id="editCertNotes" rows="2" placeholder="Optional notes for MAXX Admin explaining updated document..."></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-weight: 700; padding: 0.75rem;">
+          <i class="fa-solid fa-paper-plane"></i> Resubmit to MAXX Admin
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Configure Job Role Requirement Preset -->
+  <div class="modal-overlay" id="jobRolePresetModal">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="flex-between mb-3">
+        <h3 style="font-size: 1.15rem; font-weight:700;"><i class="fa-solid fa-user-gear" style="color:var(--primary);"></i> Configure Job Role Requirement Preset</h3>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeJobRolePresetModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleSaveJobRolePreset(event)">
+        <input type="hidden" id="presetId" value="">
+        <div class="form-group mb-3">
+          <label>Job Role Title *</label>
+          <input type="text" id="presetRoleTitle" required placeholder="e.g. Tracking Technician, Site Supervisor, Driver">
+        </div>
+        <div class="form-group mb-3">
+          <label>Description / Job Scope</label>
+          <input type="text" id="presetDescription" placeholder="Brief job scope description...">
+        </div>
+        
+        <!-- Courses Checklist -->
+        <div class="form-group mb-3">
+          <label style="font-weight:700; color:var(--primary);"><i class="fa-solid fa-book-open"></i> Required Safety Courses Checklist</label>
+          <div id="presetCoursesChecklist" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; background: var(--bg-main);">
+            <!-- Dynamically populated with checkboxes -->
+          </div>
+        </div>
+
+        <!-- Certificates Checklist -->
+        <div class="form-group mb-3">
+          <label style="font-weight:700; color:var(--accent-teal);"><i class="fa-solid fa-id-badge"></i> Required Qualification Tickets Checklist</label>
+          <div id="presetCertsChecklist" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; background: var(--bg-main);">
+            <!-- Dynamically populated with checkboxes -->
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeJobRolePresetModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Role Preset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Worker Self Profile -->
+  <div class="modal-overlay" id="editWorkerSelfProfileModal">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="flex-between mb-3">
+        <h3 style="font-size: 1.15rem; font-weight:700;"><i class="fa-solid fa-user-pen" style="color:var(--primary);"></i> Edit My Worker Profile</h3>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeWorkerSelfProfileModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleWorkerSelfProfileSubmit(event)">
+        <div class="form-grid mb-3">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" id="selfFirstName" required placeholder="First name">
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="selfLastName" required placeholder="Last name">
+          </div>
+        </div>
+        <div class="form-group mb-3">
+          <label>Email Address</label>
+          <input type="email" id="selfEmail" placeholder="worker@company.com">
+        </div>
+        <div class="form-group mb-3">
+          <label>Phone Number</label>
+          <input type="text" id="selfPhone" placeholder="(555) 000-0000">
+        </div>
+        <div class="form-group mb-3">
+          <label>Job Title / Role</label>
+          <input type="text" id="selfJobTitle" placeholder="e.g. Tracking Technician, Operator">
+        </div>
+        <div class="form-group mb-3">
+          <label>Profile Picture / Avatar Image</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="selfAvatarUrl" placeholder="Paste image link or upload photo" style="flex:1;">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer; font-size:0.8rem; height:38px; display:inline-flex; align-items:center;">
+              <i class="fa-solid fa-camera"></i> Upload Image
+              <input type="file" accept="image/*" style="display:none;" onchange="app.handleFileUpload(event, 'selfAvatarUrl')">
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:0.75rem; font-weight:700;">
+          <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT JOB ROLE PRESET MATRIX -->
+  <div class="modal-overlay" id="jobRolePresetModal">
+    <div class="modal-box" style="max-width: 680px;">
+      <div class="flex-between mb-3">
+        <h3 style="font-size: 1.2rem; font-weight:700;"><i class="fa-solid fa-user-gear" style="color:var(--primary);"></i> Configure Job Role Training & Certificate Preset</h3>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeJobRolePresetModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleSaveJobRolePresetSubmit(event)">
+        <input type="hidden" id="presetId">
+        <div class="form-group mb-3">
+          <label>Job Role Title *</label>
+          <input type="text" id="presetRoleTitle" required placeholder="e.g. Tracking Technician, Rig Welder, Site Supervisor">
+        </div>
+        <div class="form-group mb-3">
+          <label>Role Description</label>
+          <textarea id="presetDescription" rows="2" placeholder="Responsibilities and compliance requirements for this role..."></textarea>
+        </div>
+
+        <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; margin-bottom:1rem;">
+          <h4 style="font-size:0.95rem; font-weight:700; color:var(--primary); margin-bottom:0.5rem;"><i class="fa-solid fa-book-bookmark"></i> Required Safety Courses Checklist</h4>
+          <div id="presetCoursesChecklist" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; max-height:160px; overflow-y:auto;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+          <h4 style="font-size:0.95rem; font-weight:700; color:var(--accent-teal); margin-bottom:0.5rem;"><i class="fa-solid fa-id-badge"></i> Required Qualification Tickets Checklist</h4>
+          <div id="presetCertsChecklist" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; max-height:160px; overflow-y:auto;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:0.75rem; font-weight:700;">
+          <i class="fa-solid fa-floppy-disk"></i> Save Job Role Preset
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EMAIL WORKER SAFETY PASSPORT & QR BADGE -->
+  <div class="modal-overlay" id="emailWorkerPassportModal">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="flex-between mb-3">
+        <h3 style="font-size: 1.15rem; font-weight:700;"><i class="fa-solid fa-paper-plane" style="color:var(--primary);"></i> Email Worker QR Passport & Safety Badge</h3>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;" onclick="app.closeEmailWorkerPassportModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="app.handleEmailWorkerPassportSubmit(event)">
+        <div class="form-group mb-3">
+          <label>Select Worker *</label>
+          <select id="emailPassportWorkerSelect" required></select>
+        </div>
+        <div class="form-group mb-3">
+          <label>Recipient Email Address *</label>
+          <input type="email" id="emailPassportRecipient" required placeholder="site.supervisor@company.com or worker email">
+        </div>
+        <div class="form-group mb-3">
+          <label>Custom Instruction / Message for Recipient</label>
+          <textarea id="emailPassportNote" rows="3" placeholder="Please find attached digital safety passport and QR code badge for site clearance..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:0.75rem; font-weight:700;">
+          <i class="fa-solid fa-envelope-circle-check"></i> Send Digital Passport & QR Badge
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HIGH RESOLUTION DOCUMENT & IMAGE PREVIEW -->
+  <div class="modal-overlay" id="imagePreviewModal">
+    <div class="modal-box" style="max-width: 900px; text-align: center;">
+      <div class="flex-between mb-3" style="border-bottom:1px solid var(--border-color); padding-bottom:0.75rem;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin:0;" id="imagePreviewTitle">Document Preview</h3>
+        <button style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.4rem;" onclick="app.closeImagePreviewModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding:1rem 0; max-height:75vh; overflow:auto;">
+        <img id="imagePreviewImg" src="" alt="Document Preview" style="max-width:100%; max-height:70vh; border-radius:8px; border:1px solid #cbd5e1; box-shadow:0 10px 25px rgba(0,0,0,0.1);">
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=16"></script>
+</body>
+</html>
