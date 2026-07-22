@@ -746,6 +746,8 @@ class VMSApp {
       this.currentUser = data.user;
       this.currentVendor = data.vendor;
       this.closeAuthModal();
+      this.showAppLayout();
+      this.showTab('dashboard');
       this.updateUserUI();
       await this.loadPrequal();
       await this.loadEmployees();
