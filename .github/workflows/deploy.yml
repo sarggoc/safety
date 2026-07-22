@@ -1,0 +1,42 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy via SSH to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            # Navigate to project directory (change path if different)
+            cd ~/safety || cd /home/${{ secrets.EC2_USER }}/safety || cd /var/www/safety
+
+            # Pull latest code from GitHub
+            git pull origin master
+
+            # Install/update dependencies
+            npm install --production
+
+            # Restart app using PM2 (keeps it running in background)
+            if pm2 list | grep -q "vms-app"; then
+              pm2 restart vms-app
+            else
+              pm2 start server.js --name vms-app
+            fi
+
+            pm2 save
+            echo "Deployment complete!"
