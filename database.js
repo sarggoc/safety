@@ -253,7 +253,9 @@ class DatabaseService {
     ];
 
     sampleVendors.forEach(sv => {
-      if (!data.vendors.some(v => v.id === sv.id)) {
+      // Skip seeding this vendor if admin explicitly deleted it
+      const wasDeleted = (data.deleted_seed_ids || []).includes(sv.id);
+      if (!wasDeleted && !data.vendors.some(v => v.id === sv.id)) {
         data.vendors.push(sv);
         modified = true;
       }
@@ -271,7 +273,9 @@ class DatabaseService {
 
     if (!data.vendor_employees) data.vendor_employees = [];
     sampleEmployees.forEach(se => {
-      if (!data.vendor_employees.some(e => e.id === se.id)) {
+      // Skip seeding this employee if admin explicitly deleted it
+      const wasDeleted = (data.deleted_seed_ids || []).includes(se.id);
+      if (!wasDeleted && !data.vendor_employees.some(e => e.id === se.id)) {
         data.vendor_employees.push(se);
         modified = true;
       }
@@ -375,11 +379,19 @@ class DatabaseService {
 
   deleteVendor(id) {
     const data = this.read();
+    // Track deleted seed IDs to prevent re-seeding on restart
+    if (!data.deleted_seed_ids) data.deleted_seed_ids = [];
+    if (!data.deleted_seed_ids.includes(id)) data.deleted_seed_ids.push(id);
+    // Also track deleted seed employees for this vendor
+    const deletedEmpIds = (data.vendor_employees || []).filter(e => e.vendorId === id).map(e => e.id);
+    deletedEmpIds.forEach(eid => { if (!data.deleted_seed_ids.includes(eid)) data.deleted_seed_ids.push(eid); });
     data.vendors = (data.vendors || []).filter(v => v.id !== id);
     data.prequalifications = (data.prequalifications || []).filter(p => p.vendorId !== id);
     data.certificates = (data.certificates || []).filter(c => c.vendorId !== id);
     data.personnel_certificates = (data.personnel_certificates || []).filter(c => c.vendorId !== id);
     data.vendor_employees = (data.vendor_employees || []).filter(e => e.vendorId !== id);
+    // Also delete associated user accounts
+    data.users = (data.users || []).filter(u => u.vendorId !== id);
     this.save(data);
   }
 
@@ -410,7 +422,14 @@ class DatabaseService {
 
   deleteEmployee(id) {
     const data = this.read();
-    data.vendor_employees = data.vendor_employees.filter(e => e.id !== id);
+    // Track deleted seed IDs to prevent re-seeding on restart
+    if (!data.deleted_seed_ids) data.deleted_seed_ids = [];
+    if (!data.deleted_seed_ids.includes(id)) data.deleted_seed_ids.push(id);
+    data.vendor_employees = (data.vendor_employees || []).filter(e => e.id !== id);
+    // Also delete the employee's user account if exists
+    data.users = (data.users || []).filter(u => u.employeeId !== id);
+    // Also delete their personnel certs
+    data.personnel_certificates = (data.personnel_certificates || []).filter(c => c.employeeId !== id);
     this.save(data);
   }
 

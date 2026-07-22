@@ -2232,14 +2232,25 @@ class VMSApp {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to approve certificate');
 
-      this.showToast('Ticket approved! Worker jobsite clearance granted.', 'success');
-      await this.loadCertificates();
+      // Update local state immediately so queue re-renders without a full reload
+      if (isPersonnel) {
+        const cert = (this.personnelCertificates || []).find(c => c.id === certId);
+        if (cert) cert.approvalStatus = 'approved';
+      } else {
+        const cert = (this.certificates || []).find(c => c.id === certId);
+        if (cert) cert.approvalStatus = 'approved';
+      }
+
+      this.showToast('Document approved! Compliance granted.', 'success');
+      this.renderPendingWorkerTicketsQueue();
       if (this.currentUser && this.currentUser.role === 'admin') {
         this.renderDashCompaniesTable();
       }
       if (this.currentProfileEmployee) {
         this.openEmployeeProfileModal(this.currentProfileEmployee.id);
       }
+      // Full reload in background to persist accurate state
+      await this.loadCertificates();
     } catch (err) {
       this.showToast('Approval error: ' + err.message, 'error');
     }
@@ -2267,14 +2278,25 @@ class VMSApp {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to reject certificate');
 
-      this.showToast('Ticket marked as rejected.', 'warning');
-      await this.loadCertificates();
+      // Update local state immediately so queue re-renders without a full reload
+      if (isPersonnel) {
+        const cert = (this.personnelCertificates || []).find(c => c.id === certId);
+        if (cert) cert.approvalStatus = 'rejected';
+      } else {
+        const cert = (this.certificates || []).find(c => c.id === certId);
+        if (cert) cert.approvalStatus = 'rejected';
+      }
+
+      this.showToast('Document rejected. Contractor notified to resubmit.', 'warning');
+      this.renderPendingWorkerTicketsQueue();
       if (this.currentUser && this.currentUser.role === 'admin') {
         this.renderDashCompaniesTable();
       }
       if (this.currentProfileEmployee) {
         this.openEmployeeProfileModal(this.currentProfileEmployee.id);
       }
+      // Full reload in background
+      await this.loadCertificates();
     } catch (err) {
       this.showToast('Rejection error: ' + err.message, 'error');
     }
@@ -3085,12 +3107,21 @@ class VMSApp {
       return;
     }
 
+    // Build vendor name lookup map
+    const vendorNameMap = {};
+    (this.allVendors || []).forEach(v => { vendorNameMap[v.id] = v.companyName; });
+
     card.classList.remove('hidden');
-    tbody.innerHTML = pendingDocs.map(c => `
+    tbody.innerHTML = pendingDocs.map(c => {
+      // Resolve company name - prefer allVendors lookup over stored value
+      const resolvedCompany = vendorNameMap[c.vendorId] || c.companyName || 'Contractor Organization';
+      const isUnknown = resolvedCompany === 'Unknown Vendor';
+      const displayCompany = isUnknown ? (vendorNameMap[c.vendorId] || 'Contractor Organization') : resolvedCompany;
+      return `
       <tr>
         <td>
           <strong>${c.ownerName}</strong><br>
-          <small style="color:var(--text-muted);">${c.companyName || 'Contractor'}</small>
+          <small style="color:var(--text-muted);">${displayCompany}</small>
         </td>
         <td><span class="badge ${c.isPersonnel ? 'badge-info' : 'badge-warning'}">${c.docCategory}</span></td>
         <td><strong style="color:var(--primary);">${c.title}</strong></td>
@@ -3107,7 +3138,8 @@ class VMSApp {
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 
   showAdminPersonnelForVendor(vendorId) {
